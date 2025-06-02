@@ -1,7 +1,7 @@
 {
-  "name": "chatroom-app",
+  "name": "music-web",
   "version": "1.0.0",
-  "description": "Chatroom with login/signup, real-time messaging and AI chatbot using Socket.IO.",
+  "description": "Music web application with chat, real-time messaging, and AI chatbot.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -21,9 +21,13 @@
     "node": ">=14.0.0"
   },
   "keywords": [
-    "chatroom",
+    "music",
+    "web",
+    "chat",
+    "real-time",
     "socket.io",
-    "express",
-    "real-time"
+    "AI"
   ],
-  "author": "Neaterry6"
+  "author": "Neaterry6",
+  "license": "MIT"
+}
