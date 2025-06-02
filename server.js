@@ -15,9 +15,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({ secret: 'supersecretkey', saveUninitialized: true, resave: true }));
 
-// Store users and chat history
+// Store users, chat history, and reactions
 const users = {}; // Example: { "john": "password123" }
 let chatHistory = [];
+let reactions = {}; // Example: { messageId: ['😊', '❤️'] }
 
 // Routes
 app.get('/', (req, res) => {
@@ -59,28 +60,7 @@ io.on('connection', (socket) => {
     console.log(`${username} connected`);
     socket.emit('chatHistory', chatHistory);
 
-    // Notify others that a user joined
-    io.emit('chatMessage', { username: 'System', message: `${username} joined the chat`, timestamp: new Date().toLocaleTimeString() });
-
-    // Handle messages
-    socket.on('chatMessage', async ({ message, timestamp }) => {
-        const isBotMessage = message.startsWith('/Ai');
-        if (isBotMessage) {
-            const userMessage = message.replace('/Ai', '').trim();
-            const botReply = await getBotReply(userMessage);
-            const botTimestamp = new Date().toLocaleTimeString();
-            io.emit('chatMessage', { username: 'AI Bot', message: botReply, timestamp: botTimestamp });
-            chatHistory.push({ username: 'AI Bot', message: botReply, timestamp: botTimestamp });
-        } else {
-            io.emit('chatMessage', { username, message, timestamp });
-            chatHistory.push({ username, message, timestamp });
-        }
-    });
-
-    // Notify others that a user left
-    socket.on('disconnect', () => {
-        console.log(`${username} disconnected`);
-        io.emit('chatMessage', { username: 'System', message: `${username} left the chat`, timestamp: new Date().toLocaleTimeString() });
+    // Notify otherstoLocaleTimeString() });
     });
 });
 
@@ -99,8 +79,13 @@ async function getBotReply(userMessage) {
     }
 }
 
+// Helper function to generate unique IDs for messages
+function generateId() {
+    return Math.random().toString(36).substr(2, 9);
+}
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-})
+});
