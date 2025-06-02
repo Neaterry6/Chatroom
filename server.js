@@ -2,6 +2,12 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import axios from 'axios';
+import session from 'express-session';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
@@ -9,10 +15,89 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// In-memory chat history (for demo; consider DB in production)
+// Simple in-memory user store (for demo only!)
+const users = {};  // { username: password }
+
+// Express session middleware
+app.use(session({
+  secret: 'replace_with_a_strong_secret', 
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 day
+}));
+
+// Body parser for POST form data
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files (css, js, images, signup.html, chatroom.html)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware to protect chatroom route
+function requireLogin(req, res, next) {
+  if (req.session && req.session.username) {
+    next();
+  } else {
+    res.redirect('/signup');
+  }
+}
+
+// Redirect root "/" based on session
+app.get('/', (req, res) => {
+  if (req.session && req.session.username) {
+    res.redirect('/chatroom.html');
+  } else {
+    res.redirect('/signup');
+  }
+});
+
+// Serve your combined signup/login page
+app.get('/signup', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+
+// POST /signup handles both signup and login depending on action field
+app.post('/signup', (req, res) => {
+  const { username, password, action } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).send('Missing username or password');
+  }
+
+  if (action === 'signup') {
+    if (users[username]) {
+      return res.status(409).send('Username already taken. Please try a different one.');
+    }
+    users[username] = password;
+    req.session.username = username;
+    return res.redirect('/chatroom.html');
+  } else if (action === 'login') {
+    if (users[username] && users[username] === password) {
+      req.session.username = username;
+      return res.redirect('/chatroom.html');
+    } else {
+      return res.status(401).send('Invalid credentials. Please try again.');
+    }
+  } else {
+    return res.status(400).send('Invalid action');
+  }
+});
+
+// Logout route
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/signup');
+  });
+});
+
+// Protect chatroom.html so only logged-in users can access
+app.get('/chatroom.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chatroom.html'));
+});
+
+// --- Your existing chat + AI logic below ---
+
 let chatHistory = [];
 
-// Helper: send AI chat request
 async function askAI(question) {
   try {
     const url = `https://kaiz-apis.gleeze.com/api/gpt-4.1?ask=${encodeURIComponent(question)}&uid=1268&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea`;
@@ -25,7 +110,6 @@ async function askAI(question) {
   }
 }
 
-// Helper: YouTube search
 async function ytSearch(query) {
   try {
     const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytsearch', { params: { q: query } });
@@ -37,7 +121,6 @@ async function ytSearch(query) {
   }
 }
 
-// Helper: Download song mp3 URL
 async function getSongUrl(videoId) {
   try {
     const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytdown-mp3', { params: { v: videoId } });
@@ -49,7 +132,6 @@ async function getSongUrl(videoId) {
   }
 }
 
-// Helper: Download video mp4 URL
 async function getVideoUrl(videoId) {
   try {
     const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytmp4', { params: { v: videoId } });
@@ -61,7 +143,6 @@ async function getVideoUrl(videoId) {
   }
 }
 
-// Helper: Generate image from prompt
 async function generateImage(prompt) {
   try {
     const res = await axios.get(`https://smfahim.xyz/creartai?prompt=${encodeURIComponent(prompt)}`);
@@ -73,8 +154,6 @@ async function generateImage(prompt) {
   }
 }
 
-app.use(express.static('public')); // serve your static files (chatroom.html etc.)
-
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -82,14 +161,12 @@ io.on('connection', (socket) => {
   socket.emit('chatHistory', chatHistory);
 
   socket.on('message', async (data) => {
-    // Expected data: { user, message, replyTo, reaction }
     let message = data.message.trim();
 
-    // Handle AI commands that start with ".Ai"
+    // AI commands (start with .ai)
     if(message.toLowerCase().startsWith('.ai')) {
       const command = message.substring(3).trim();
 
-      // Special cases: send song, video, generate image
       if(/send me song/i.test(command)) {
         const query = command.replace(/send me song/i, '').trim();
         const video = await ytSearch(query);
@@ -137,7 +214,6 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Default: normal AI chat response
       const aiResponse = await askAI(command);
       const aiMsg = { user: 'AI', message: aiResponse };
       chatHistory.push(aiMsg);
@@ -145,7 +221,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Normal message, add to chat and broadcast
+    // Normal chat message
     const chatMsg = {
       user: data.user || 'Unknown',
       message: message,
