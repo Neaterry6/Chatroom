@@ -60,7 +60,54 @@ io.on('connection', (socket) => {
     console.log(`${username} connected`);
     socket.emit('chatHistory', chatHistory);
 
-    // Notify otherstoLocaleTimeString() });
+    // Notify others that a user joined
+    io.emit('chatMessage', { id: generateId(), username: 'System', message: `${username} joined the chat`, timestamp: new Date().toLocaleTimeString() });
+
+    // Handle text messages
+    socket.on('chatMessage', async ({ message, timestamp, replyTo }) => {
+        const messageId = generateId();
+
+        const isBotMessage = message.startsWith('/Ai');
+        if (isBotMessage) {
+            const userMessage = message.replace('/Ai', '').trim();
+            const botReply = await getBotReply(userMessage);
+            const botTimestamp = new Date().toLocaleTimeString();
+            io.emit('chatMessage', { id: generateId(), username: 'AI Bot', message: botReply, timestamp: botTimestamp });
+            chatHistory.push({ id: generateId(), username: 'AI Bot', message: botReply, timestamp: botTimestamp });
+        } else {
+            const newMessage = { id: messageId, username, message, timestamp, replyTo };
+            io.emit('chatMessage', newMessage);
+            chatHistory.push(newMessage);
+        }
+    });
+
+    // Handle reactions
+    socket.on('reactToMessage', ({ messageId, reaction }) => {
+        if (!reactions[messageId]) {
+            reactions[messageId] = [];
+        }
+        reactions[messageId].push(reaction);
+        io.emit('reaction', { messageId, reactions: reactions[messageId] });
+    });
+
+    // Handle voice notes
+    socket.on('voiceNote', ({ audio, timestamp }) => {
+        const newVoiceNote = { id: generateId(), username, audio, timestamp };
+        io.emit('voiceNote', newVoiceNote);
+        chatHistory.push(newVoiceNote);
+    });
+
+    // Handle image uploads
+    socket.on('image', ({ image, timestamp }) => {
+        const newImageMessage = { id: generateId(), username, image, timestamp };
+        io.emit('image', newImageMessage);
+        chatHistory.push(newImageMessage);
+    });
+
+    // Notify others that a user left
+    socket.on('disconnect', () => {
+        console.log(`${username} disconnected`);
+        io.emit('chatMessage', { id: generateId(), username: 'System', message: `${username} left the chat`, timestamp: new Date().toLocaleTimeString() });
     });
 });
 
