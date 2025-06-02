@@ -1,20 +1,17 @@
 {
   "name": "chatroom-app",
   "version": "1.0.0",
-  "description": "A realtime web chatroom using Socket.io, Express and basic frontend enhancements.",
+  "description": "A real-time chatroom app with socket.io, image upload, voice notes, dark mode and AI integration",
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node server.js"
   },
   "author": "heisbroken",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.6.8",
     "express": "^4.19.2",
     "socket.io": "^4.7.5"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
   }
 }
