@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatroom</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>StreamMe Chatroom</header>
+    <div class="chat-room">
+        <div class="chat-box" id="chatBox"></div>
+        <div class="input-container">
+            <input type="text" id="chatInput" placeholder="Type your message...">
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io({ query: { username: '<%= username %>' } });
+        const chatBox = document.getElementById('chatBox');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        socket.on('chatHistory', (history) => {
+            history.forEach(({ username, message, timestamp }) => addMessage(username, message, timestamp));
+        });
+
+        socket.on('chatMessage', ({ username, message, timestamp }) => {
+            addMessage(username, message, timestamp);
+        });
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+            socket.emit('chatMessage', { message, timestamp: new Date().toLocaleTimeString() });
+            chatInput.value = '';
+        }
+
+        function addMessage(username, message, timestamp) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            msgDiv.innerHTML = `
+                <span class="username">${username}</span>
+                <span class="timestamp">${timestamp}</span>
+                <div class="text">${message}</div>
+            `;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+  </html
