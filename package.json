@@ -1,33 +1,20 @@
 {
-  "name": "music-web",
+  "name": "chatroom-app",
   "version": "1.0.0",
-  "description": "Music web application with chat, real-time messaging, and AI chatbot.",
+  "description": "A realtime web chatroom using Socket.io, Express and basic frontend enhancements.",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
+  "author": "heisbroken",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.1",
-    "body-parser": "^1.20.2",
-    "express-session": "^1.17.3",
-    "node-fetch": "^2.6.9"
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
-  },
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "keywords": [
-    "music",
-    "web",
-    "chat",
-    "real-time",
-    "socket.io",
-    "AI"
-  ],
-  "author": "Neaterry6",
-  "license": "MIT"
+    "nodemon": "^3.1.0"
+  }
 }
