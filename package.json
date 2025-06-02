@@ -1,17 +1,26 @@
+
 {
-  "name": "chatroom-app",
+  "name": "chat-ai-server",
   "version": "1.0.0",
-  "description": "A real-time chatroom app with socket.io, image upload, voice notes, dark mode and AI integration",
+  "description": "Express + Socket.io chat server with AI commands and session login",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js"
   },
-  "author": "heisbroken",
+  "keywords": [
+    "chat",
+    "express",
+    "socket.io",
+    "AI",
+    "session"
+  ],
+  "author": "Your Name",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.8",
-    "express": "^4.19.2",
-    "socket.io": "^4.7.5"
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "socket.io": "^4.7.2"
   }
 }
