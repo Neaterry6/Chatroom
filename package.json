@@ -1,7 +1,7 @@
 {
   "name": "chatroom-app",
   "version": "1.0.0",
-  "description": "Chatroom with login/signup, real-time messaging, and AI chatbot using Socket.IO.",
+  "description": "Chatroom with login/signup, real-time messaging and AI chatbot using Socket.IO.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -24,8 +24,6 @@
     "chatroom",
     "socket.io",
     "express",
-    "real-time",
-    "ai-chatbot"
+    "real-time"
   ],
-  "author": "Neaterry6",
-  "license": "MIT"
+  "author": "Neaterry6"
