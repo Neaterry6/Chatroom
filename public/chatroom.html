@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatroom</title>
+    <title>StreamMe Chatroom</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,7 +12,73 @@
         <div class="chat-box" id="chatBox"></div>
         <div class="input-container">
             <button id="recordButton">🎤</button>
-            <input type="file" id="imageInput" accept="            msgDiv.querySelector('.react').addEventListener('click', () => reactToMessage(id));
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button id="uploadImageButton">📷</button>
+            <input type="text" id="chatInput" placeholder="Type your message...">
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const chatBox = document.getElementById('chatBox');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const recordButton = document.getElementById('recordButton');
+        const uploadImageButton = document.getElementById('uploadImageButton');
+        const imageInput = document.getElementById('imageInput');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let replyToMessageId = null;
+
+        // Function to sanitize text to prevent code injection
+        function sanitizeText(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Send a message to the server
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            const timestamp = new Date().toLocaleTimeString();
+            const data = {
+                message: sanitizeText(message),
+                timestamp,
+                replyTo: replyToMessageId,
+            };
+
+            socket.emit('chatMessage', data);
+            chatInput.value = '';
+            replyToMessageId = null; // Reset reply
+        }
+
+        // Display messages received from the server
+        socket.on('chatMessage', ({ id, username, message, timestamp, replyTo }) => {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            msgDiv.setAttribute('data-id', id);
+
+            msgDiv.innerHTML = `
+                <span class="username">${sanitizeText(username)}</span>
+                <span class="timestamp">${sanitizeText(timestamp)}</span>
+                <div class="text">${replyTo ? `<blockquote>Replying to: ${sanitizeText(replyTo)}</blockquote>` : ''}${sanitizeText(message)}</div>
+                <div class="message-options">
+                    <button class="react">😊</button>
+                    <button class="reply">Reply</button>
+                </div>
+            `;
+
+            msgDiv.querySelector('.react').addEventListener('click', () => reactToMessage(id));
             msgDiv.querySelector('.reply').addEventListener('click', () => replyToMessage(id));
 
             chatBox.appendChild(msgDiv);
@@ -23,21 +89,28 @@
         function reactToMessage(messageId) {
             const reaction = prompt('React with an emoji: 😊❤️🔥👍');
             if (reaction) {
-                socket.emit('reactToMessage', { messageId, reaction });
+                socket.emit('reactToMessage', { messageId, reaction: sanitizeText(reaction) });
             }
         }
 
         // Reply to a message
-        function replyToDiv = document.querySelector(`[data-id="${messageId}"]`);
+        function replyToMessage(messageId) {
+            replyToMessageId = messageId;
+            chatInput.focus();
+        }
+
+        // Handle reactions
+        socket.on('reaction', ({ messageId, reaction }) => {
+            const messageDiv = document.querySelector(`[data-id="${messageId}"]`);
             if (messageDiv) {
                 const reactionDiv = messageDiv.querySelector('.reactions') || document.createElement('div');
                 reactionDiv.classList.add('reactions');
-                reactionDiv.textContent += ` ${reaction}`;
+                reactionDiv.textContent += ` ${sanitizeText(reaction)}`;
                 messageDiv.appendChild(reactionDiv);
             }
         });
 
-        // Record voice notes
+        // Record and send voice notes
         recordButton.addEventListener('mousedown', startRecording);
         recordButton.addEventListener('mouseup', stopRecording);
 
@@ -67,20 +140,20 @@
             }
         }
 
-        // Handle voice notes
+        // Display voice notes
         socket.on('voiceNote', ({ username, audio, timestamp }) => {
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message');
             msgDiv.innerHTML = `
-                <span class="username">${username}</span>
-                <span class="timestamp">${timestamp}</span>
-                <audio controls src="data:audio/webm;base64,${audio}"></audio>
+                <span class="username">${sanitizeText(username)}</span>
+                <span class="timestamp">${sanitizeText(timestamp)}</span>
+                <audio controls src="data:audio/webm;base64,${sanitizeText(audio)}"></audio>
             `;
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         });
 
-        // Upload an image
+        // Upload and send an image
         uploadImageButton.addEventListener('click', () => imageInput.click());
         imageInput.addEventListener('change', () => {
             const file = imageInput.files[0];
@@ -95,18 +168,18 @@
             }
         });
 
-        // Handle images
+        // Display images
         socket.on('image', ({ username, image, timestamp }) => {
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message');
             msgDiv.innerHTML = `
-                <span class="username">${username}</span>
-                <span class="timestamp">${timestamp}</span>
-                <img src="data:image/png;base64,${image}" alt="Image" style="max-width: 200px; max-height: 200px;">
+                <span class="username">${sanitizeText(username)}</span>
+                <span class="timestamp">${sanitizeText(timestamp)}</span>
+                <img src="data:image/png;base64,${sanitizeText(image)}" alt="Image" style="max-width: 200px; max-height: 200px;">
             `;
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         });
     </script>
 </body>
- </html> 
+</html>
