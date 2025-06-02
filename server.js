@@ -55,7 +55,7 @@ app.post('/auth', (req, res) => {
 
 // Chatroom Handler
 io.on('connection', (socket) => {
-    const username = socket.handshake.query.username;
+    const username = socket.handshake.query.username || 'Anonymous';
 
     console.log(`${username} connected`);
     socket.emit('chatHistory', chatHistory);
@@ -64,21 +64,12 @@ io.on('connection', (socket) => {
     io.emit('chatMessage', { id: generateId(), username: 'System', message: `${username} joined the chat`, timestamp: new Date().toLocaleTimeString() });
 
     // Handle text messages
-    socket.on('chatMessage', async ({ message, timestamp, replyTo }) => {
+    socket.on('chatMessage', ({ message, timestamp, replyTo }) => {
         const messageId = generateId();
+        const newMessage = { id: messageId, username, message, timestamp, replyTo };
 
-        const isBotMessage = message.startsWith('/Ai');
-        if (isBotMessage) {
-            const userMessage = message.replace('/Ai', '').trim();
-            const botReply = await getBotReply(userMessage);
-            const botTimestamp = new Date().toLocaleTimeString();
-            io.emit('chatMessage', { id: generateId(), username: 'AI Bot', message: botReply, timestamp: botTimestamp });
-            chatHistory.push({ id: generateId(), username: 'AI Bot', message: botReply, timestamp: botTimestamp });
-        } else {
-            const newMessage = { id: messageId, username, message, timestamp, replyTo };
-            io.emit('chatMessage', newMessage);
-            chatHistory.push(newMessage);
-        }
+        io.emit('chatMessage', newMessage);
+        chatHistory.push(newMessage);
     });
 
     // Handle reactions
@@ -87,7 +78,7 @@ io.on('connection', (socket) => {
             reactions[messageId] = [];
         }
         reactions[messageId].push(reaction);
-        io.emit('reaction', { messageId, reactions: reactions[messageId] });
+        io.emit('reaction', { messageId, reaction });
     });
 
     // Handle voice notes
@@ -110,21 +101,6 @@ io.on('connection', (socket) => {
         io.emit('chatMessage', { id: generateId(), username: 'System', message: `${username} left the chat`, timestamp: new Date().toLocaleTimeString() });
     });
 });
-
-// Helper function to interact with AI API
-async function getBotReply(userMessage) {
-    const apiKey = 'a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea';
-    const apiUrl = `https://kaiz-apis.gleeze.com/api/gpt-4.1?ask=${encodeURIComponent(userMessage)}&uid=1268&apikey=${apiKey}`;
-
-    try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        return data.response || 'Sorry, I didn’t quite understand that.';
-    } catch (error) {
-        console.error('Error interacting with AI API:', error);
-        return 'Error: Unable to communicate with AI at the moment.';
-    }
-}
 
 // Helper function to generate unique IDs for messages
 function generateId() {
