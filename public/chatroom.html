@@ -11,49 +11,102 @@
     <div class="chat-room">
         <div class="chat-box" id="chatBox"></div>
         <div class="input-container">
-            <input type="text" id="chatInput" placeholder="Type your message...">
-            <button id="sendButton">Send</button>
-        </div>
-    </div>
+            <button id="recordButton">🎤</button>
+            <input type="file" id="imageInput" accept="            msgDiv.querySelector('.react').addEventListener('click', () => reactToMessage(id));
+            msgDiv.querySelector('.reply').addEventListener('click', () => replyToMessage(id));
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io({ query: { username: '<%= username %>' } });
-        const chatBox = document.getElementById('chatBox');
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendButton');
-
-        sendButton.addEventListener('click', sendMessage);
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
         });
 
-        socket.on('chatHistory', (history) => {
-            history.forEach(({ username, message, timestamp }) => addMessage(username, message, timestamp));
-        });
-
-        socket.on('chatMessage', ({ username, message, timestamp }) => {
-            addMessage(username, message, timestamp);
-        });
-
-        function sendMessage() {
-            const message = chatInput.value.trim();
-            if (!message) return;
-            socket.emit('chatMessage', { message, timestamp: new Date().toLocaleTimeString() });
-            chatInput.value = '';
+        // React to a message
+        function reactToMessage(messageId) {
+            const reaction = prompt('React with an emoji: 😊❤️🔥👍');
+            if (reaction) {
+                socket.emit('reactToMessage', { messageId, reaction });
+            }
         }
 
-        function addMessage(username, message, timestamp) {
+        // Reply to a message
+        function replyToDiv = document.querySelector(`[data-id="${messageId}"]`);
+            if (messageDiv) {
+                const reactionDiv = messageDiv.querySelector('.reactions') || document.createElement('div');
+                reactionDiv.classList.add('reactions');
+                reactionDiv.textContent += ` ${reaction}`;
+                messageDiv.appendChild(reactionDiv);
+            }
+        });
+
+        // Record voice notes
+        recordButton.addEventListener('mousedown', startRecording);
+        recordButton.addEventListener('mouseup', stopRecording);
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                })
+                .catch(err => console.error('Error accessing microphone:', err));
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64Audio = reader.result.split(',')[1];
+                        socket.emit('voiceNote', { audio: base64Audio, timestamp: new Date().toLocaleTimeString() });
+                    };
+                    reader.readAsDataURL(audioBlob);
+                    audioChunks = [];
+                };
+            }
+        }
+
+        // Handle voice notes
+        socket.on('voiceNote', ({ username, audio, timestamp }) => {
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message');
             msgDiv.innerHTML = `
                 <span class="username">${username}</span>
                 <span class="timestamp">${timestamp}</span>
-                <div class="text">${message}</div>
+                <audio controls src="data:audio/webm;base64,${audio}"></audio>
             `;
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        });
+
+        // Upload an image
+        uploadImageButton.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', () => {
+            const file = imageInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64Image = reader.result.split(',')[1];
+                    socket.emit('image', { image: base64Image, timestamp: new Date().toLocaleTimeString() });
+                };
+                reader.readAsDataURL(file);
+                imageInput.value = ''; // Reset the input
+            }
+        });
+
+        // Handle images
+        socket.on('image', ({ username, image, timestamp }) => {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            msgDiv.innerHTML = `
+                <span class="username">${username}</span>
+                <span class="timestamp">${timestamp}</span>
+                <img src="data:image/png;base64,${image}" alt="Image" style="max-width: 200px; max-height: 200px;">
+            `;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
     </script>
 </body>
-  </html
+ </html> 
