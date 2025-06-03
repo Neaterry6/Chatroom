@@ -98,7 +98,7 @@ app.get('/chatroom.html', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chatroom.html'));
 });
 
-// ------------- Your Chatroom, AI, and Media Logic ---------------
+// ----------- Your Chatroom, AI, and Media Logic --------------
 
 let chatHistory = [];
 
