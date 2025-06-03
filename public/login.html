@@ -254,121 +254,60 @@
 
     <h2>Login</h2>
 
-    <form id="loginForm" action="/login" method="POST" novalidate>
-      <input
-        type="text"
-        name="username"
-        placeholder="Username or Email"
-        required
-        autocomplete="username"
-      />
-      <div id="usernameError" class="error-message"></div>
-
-      <input
-        type="password"
-        name="password"
-        placeholder="Password"
-        required
-        autocomplete="current-password"
-      />
-      <div id="passwordError" class="error-message"></div>
-
-      <label class="remember" for="rememberMe">
-        <input type="checkbox" id="rememberMe" name="remember" />
-        Remember me
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <label class="remember">
+        <input type="checkbox" id="rememberMe" />
+        Remember Me
       </label>
-
-      <button type="submit" id="submitBtn">Log In</button>
-      <div id="formSuccess" class="success-message" style="display:none;"></div>
+      <div class="error-message" id="loginMessage"></div>
+      <button type="submit">Login</button>
     </form>
 
     <div class="signup-link">
-      Don't have an account? <a href="signup.html">Sign Up</a>
+      Don't have an account? <a href="/signup">Sign up</a>
     </div>
   </div>
 
   <script>
+    // Light/Dark mode toggle
     const modeToggle = document.getElementById('modeToggle');
-
-    // Set initial mode from localStorage
-    if (localStorage.getItem('mode') === 'light') {
-      document.body.classList.add('light');
-      modeToggle.checked = true;
-    }
-
     modeToggle.addEventListener('change', () => {
-      if (modeToggle.checked) {
-        document.body.classList.add('light');
-        localStorage.setItem('mode', 'light');
-      } else {
-        document.body.classList.remove('light');
-        localStorage.setItem('mode', 'dark');
-      }
+      document.body.classList.toggle('light', modeToggle.checked);
     });
 
-    const form = document.getElementById('loginForm');
-    const submitBtn = document.getElementById('submitBtn');
+    // Login form submission
+    const loginForm = document.getElementById('loginForm');
+    const loginMessage = document.getElementById('loginMessage');
 
-    // Error elements
-    const usernameError = document.getElementById('usernameError');
-    const passwordError = document.getElementById('passwordError');
-    const formSuccess = document.getElementById('formSuccess');
-
-    function clearErrors() {
-      usernameError.textContent = '';
-      passwordError.textContent = '';
-      formSuccess.style.display = 'none';
-      formSuccess.textContent = '';
-    }
-
-    form.addEventListener('submit', async (e) => {
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      clearErrors();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
 
-      const formData = new FormData(form);
-      const username = formData.get('username').trim();
-      const password = formData.get('password');
-
-      let valid = true;
-
-      if (username.length < 3) {
-        usernameError.textContent = 'Please enter your username or email.';
-        valid = false;
+      if (!username || !password) {
+        loginMessage.textContent = "Please fill in both fields.";
+        return;
       }
-
-      if (password.length < 6) {
-        passwordError.textContent = 'Password must be at least 6 characters.';
-        valid = false;
-      }
-
-      if (!valid) return;
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Logging in...';
 
       try {
-        const response = await fetch(form.action, {
-          method: form.method,
-          body: formData,
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
         });
 
-        if (response.ok) {
-          formSuccess.style.display = 'block';
-          formSuccess.textContent = 'Login successful! Redirecting...';
-
-          setTimeout(() => {
-            window.location.href = '/dashboard.html';
-          }, 1500);
+        const result = await response.json();
+        if (result.success) {
+          window.location.href = '/chatroom.html';
         } else {
-          const result = await response.json();
-          alert(result.message || 'Login failed. Check your credentials.');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Log In';
+          loginMessage.textContent = result.message || "Invalid credentials.";
         }
-      } catch (error) {
-        alert('Error: ' + error.message);
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Log In';
+      } catch (err) {
+        loginMessage.textContent = "An error occurred. Try again later.";
       }
     });
   </script>
