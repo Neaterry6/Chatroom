@@ -101,7 +101,9 @@ app.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     users[username] = { password: hashedPassword, email };
     await fs.writeJson(usersFile, users);
-    res.json({ success: true, message: 'Account created.error('Signup error:', e);
+    res.json({ success: true, message: 'Account created.' });
+  } catch (e) {
+    console.error('Signup error:', e);
     res.status(500).json({ success: false, message: 'Server error during signup.' });
   }
 });
