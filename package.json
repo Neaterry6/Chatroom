@@ -2,16 +2,17 @@
   "name": "ai-chatroom-server",
   "version": "1.0.0",
   "description": "An AI-powered chatroom server with user authentication, YouTube music/video fetching, and image generation.",
-  "main": "server.mjs",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "nodemon server.mjs"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "author": "heisbroken",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.8",
+    "bcrypt": "^5.1.0",
     "express": "^4.19.2",
     "express-session": "^1.17.3",
     "fs-extra": "^11.2.0",
