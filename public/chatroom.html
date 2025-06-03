@@ -79,11 +79,6 @@
       color: #29b6f6;
     }
 
-    .menu-items button:last-child,
-    .menu-items a:last-child {
-      border-bottom: none;
-    }
-
     /* Chat Container */
     .chat-container {
       flex: 1;
@@ -203,7 +198,7 @@
     <div class="title">StreamMe.id</div>
     <button class="menu-btn" id="menuToggle">☰</button>
     <div class="menu-items" id="menuItems">
-      <a href="profile.html">👤 Profile</a>
+      <a href="/profile.html">👤 Profile</a>
       <button id="darkModeToggle">🌓 Toggle Theme</button>
       <button id="logoutBtn">🚪 Logout</button>
     </div>
@@ -215,7 +210,7 @@
     <div class="input-area">
       <button class="attach-btn" id="attachBtn" aria-label="Attach Image">📎</button>
       <input type="file" id="imageUpload" accept="image/*" style="display:none;">
-      <input id="messageInput" type="text" placeholder="Type a message...">
+      <input id="messageInput" type="text" placeholder="Type a message or command...">
       <button class="voice-btn" id="voiceBtn" aria-label="Record Voice Note">🎤</button>
       <button class="send-btn" id="sendBtn" aria-label="Send Message">➤</button>
       <button id="emojiBtn" aria-label="Emoji Picker">😀</button>
@@ -223,160 +218,121 @@
     </div>
   </div>
 
- <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // Fetch username from localStorage or set to Anonymous
-    const username = localStorage.getItem("username") || "Anonymous";
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const username = localStorage.getItem("username") || "Anonymous";
 
-    // Redirect to login page if username is not found
-    if (!username) {
-      window.location.href = "login.html";
-    }
+      if (!username) {
+        window.location.href = "/login";
+      }
 
-    // Initialize elements
-    const darkModeToggle = document.getElementById("darkModeToggle");
-    const menuToggle = document.getElementById("menuToggle");
-    const menuItems = document.getElementById("menuItems");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const messageInput = document.getElementById("messageInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const attachBtn = document.getElementById("attachBtn");
-    const imageUpload = document.getElementById("imageUpload");
-    const voiceBtn = document.getElementById("voiceBtn");
-    const emojiBtn = document.getElementById("emojiBtn");
-    const emojiPicker = document.getElementById("emojiPicker");
-    const messagesDiv = document.getElementById("messages");
+      const darkModeToggle = document.getElementById("darkModeToggle");
+      const menuToggle = document.getElementById("menuToggle");
+      const menuItems = document.getElementById("menuItems");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const messageInput = document.getElementById("messageInput");
+      const sendBtn = document.getElementById("sendBtn");
+      const attachBtn = document.getElementById("attachBtn");
+      const imageUpload = document.getElementById("imageUpload");
+      const voiceBtn = document.getElementById("voiceBtn");
+      const emojiBtn = document.getElementById("emojiBtn");
+      const emojiPicker = document.getElementById("emojiPicker");
+      const messagesDiv = document.getElementById("messages");
 
-    // Connect to the WebSocket server
-    const socket = io(); // Ensure your WebSocket server is running
+      const socket = io();
 
-    // Toggle dark/light mode
-    darkModeToggle.addEventListener("click", () => {
-      document.body.classList.toggle("light-mode");
-      const isLight = document.body.classList.contains("light-mode");
-      localStorage.setItem("theme", isLight ? "light" : "dark");
-    });
+      // Toggle dark mode
+      darkModeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("light-mode");
+      });
 
-    // Toggle menu visibility
-    menuToggle.addEventListener("click", () => {
-      const isVisible = menuItems.classList.toggle("show");
-      menuItems.setAttribute("aria-hidden", !isVisible);
-    });
+      // Toggle menu
+      menuToggle.addEventListener("click", () => {
+        menuItems.classList.toggle("show");
+      });
 
-    // Logout functionality
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("username");
-      window.location.href = "login.html";
-    });
+      // Logout
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("username");
+        window.location.href = "/logout";
+      });
 
-    // Send message functionality
-    sendBtn.addEventListener("click", () => {
-      const message = messageInput.value.trim();
-      if (message) {
-        if (message.startsWith(".ai")) {
-          // Handle AI-specific commands
-          socket.emit("ai-message", { user: username, message });
-        } else {
-          // Emit the message to the server
+      // Send message
+      sendBtn.addEventListener("click", () => {
+        const message = messageInput.value.trim();
+        if (message) {
           socket.emit("message", { user: username, message });
+          messageInput.value = "";
         }
-        messageInput.value = "";
-      }
-    });
+      });
 
-    // Send message on Enter key press
-    messageInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        sendBtn.click();
-      }
-    });
+      messageInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          sendBtn.click();
+        }
+      });
 
-    // Handle incoming messages
-    socket.on("message", (data) => {
-      const messageElement = document.createElement("div");
-      messageElement.classList.add("message");
+      // Receive messages
+      socket.on("message", (data) => {
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
 
-      // Add username
-      const usernameElement = document.createElement("strong");
-      usernameElement.textContent = data.user;
+        const usernameElement = document.createElement("strong");
+        usernameElement.textContent = data.user;
 
-      // Append AI tag if applicable
-      if (data.user.toLowerCase() === "ai") {
-        const aiTag = document.createElement("span");
-        aiTag.textContent = " 🤖 AI";
-        aiTag.style.color = "#0288d1";
-        aiTag.style.fontWeight = "bold";
-        aiTag.style.marginLeft = "8px";
-        usernameElement.appendChild(aiTag);
-      }
+        const contentElement = document.createElement("div");
+        contentElement.innerHTML = data.message;
 
-      // Add message content
-      const contentElement = document.createElement("div");
-      contentElement.innerHTML = data.message;
+        if (data.user === "Michiko AI") {
+          usernameElement.innerHTML += " 🤖";
+        }
 
-      // Append to message element
-      messageElement.appendChild(usernameElement);
-      messageElement.appendChild(contentElement);
+        messageElement.appendChild(usernameElement);
+        messageElement.appendChild(contentElement);
 
-      // Append to messages container and scroll
-      messagesDiv.appendChild(messageElement);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
 
-    // Handle AI-generated messages
-    socket.on("ai-response", (data) => {
-      const messageElement = document.createElement("div");
-      messageElement.classList.add("message");
+      // Emoji Picker
+      const emojis = ["😀", "😂", "😍", "😎", "😭", "😡", "👍", "👎", "🎉", "🔥", "❤️"];
+      emojis.forEach((emoji) => {
+        const span = document.createElement("span");
+        span.textContent = emoji;
+        span.addEventListener("click", () => {
+          messageInput.value += emoji;
+          emojiPicker.style.display = "none";
+        });
+        emojiPicker.appendChild(span);
+      });
 
-      // Add AI username
-      const usernameElement = document.createElement("strong");
-      usernameElement.textContent = "AI";
+      emojiBtn.addEventListener("click", () => {
+        emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
+      });
 
-      // Append AI tag
-      const aiTag = document.createElement("span");
-      aiTag.textContent = " 🤖 AI";
-      aiTag.style.color = "#0288d1";
-      aiTag.style.fontWeight = "bold";
-      aiTag.style.marginLeft = "8px";
-      usernameElement.appendChild(aiTag);
+      // Image Upload
+      attachBtn.addEventListener("click", () => imageUpload.click());
+      imageUpload.addEventListener("change", () => {
+        const file = imageUpload.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            socket.emit("message", {
+              user: username,
+              message: `<img src="${reader.result}" style="max-width:150px; border-radius: 8px;" />`,
+            });
+          };
+          reader.readAsDataURL(file);
+        }
+      });
 
-      // Add AI response content
-      const contentElement = document.createElement("div");
-      contentElement.innerHTML = data.response;
+      // Voice Recording
+      let mediaRecorder = null;
+      let audioChunks = [];
 
-      // Append to message element
-      messageElement.appendChild(usernameElement);
-      messageElement.appendChild(contentElement);
-
-      // Append to messages container and scroll
-      messagesDiv.appendChild(messageElement);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-
-    // Image upload functionality
-    attachBtn.addEventListener("click", () => imageUpload.click());
-    imageUpload.addEventListener("change", () => {
-      const file = imageUpload.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const imageDataUrl = reader.result; // Base64 URL for the image
-          socket.emit("message", {
-            user: username,
-            message: `<img src="${imageDataUrl}" style="max-width:150px; border-radius: 8px;" />`,
-          });
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // Voice note recording functionality
-    let mediaRecorder = null;
-    let audioChunks = [];
-
-    voiceBtn.addEventListener("mousedown", () => {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then((stream) => {
+      voiceBtn.addEventListener("mousedown", () => {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
           mediaRecorder = new MediaRecorder(stream);
           mediaRecorder.start();
           audioChunks = [];
@@ -393,37 +349,18 @@
               message: `<audio controls src="${audioUrl}" style="display:block; max-width:100%;"></audio>`,
             });
           });
-        })
-        .catch((error) => {
-          console.error("Error accessing microphone:", error);
-          alert("Unable to access microphone. Please check your permissions.");
+        }).catch((error) => {
+          alert("Microphone access denied. Please allow microphone access.");
+          console.error("Microphone error:", error);
         });
-    });
-
-    voiceBtn.addEventListener("mouseup", () => {
-      if (mediaRecorder && mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
-      }
-    });
-
-    // Emoji picker functionality
-    const emojis = ["😀", "😂", "😍", "😎", "😭", "😡", "👍", "👎", "🎉", "🔥", "❤️", "💔", "👏", "🙏", "🎶", "✨", "🚀", "🌈", "🍕", "🍔", "⚽", "🏀"];
-    emojis.forEach((emoji) => {
-      const emojiElement = document.createElement("span");
-      emojiElement.textContent = emoji;
-      emojiElement.style.cursor = "pointer";
-      emojiElement.style.margin = "5px";
-      emojiElement.addEventListener("click", () => {
-        messageInput.value += emoji;
-        emojiPicker.style.display = "none";
       });
-      emojiPicker.appendChild(emojiElement);
-    });
 
-    emojiBtn.addEventListener("click", () => {
-      emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
+      voiceBtn.addEventListener("mouseup", () => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+        }
+      });
     });
-  });
-</script>
+  </script>
 </body>
 </html>
