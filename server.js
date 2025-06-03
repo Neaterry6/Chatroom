@@ -1,315 +1,139 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login</title>
-  <style>
-    :root {
-      --blue: #007bff;
-      --black: #121212;
-      --white: #f5f5f5;
-      --dark-bg: var(--black);
-      --dark-text: var(--white);
-      --light-bg: var(--white);
-      --light-text: var(--black);
-      --input-bg-dark: #1e1e1e;
-      --input-bg-light: #fff;
-      --input-text-dark: #fff;
-      --input-text-light: #000;
-      --btn-bg: var(--blue);
-      --btn-hover-bg: #0056b3;
-      --border-radius: 8px;
-      --transition-time: 0.3s;
-    }
 
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--dark-bg);
-      color: var(--dark-text);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      transition: background-color var(--transition-time), color var(--transition-time);
-    }
 
-    .auth-container {
-      background: linear-gradient(135deg, #004080, #000000);
-      padding: 30px 40px;
-      border-radius: var(--border-radius);
-      box-shadow: 0 0 20px rgba(0, 123, 255, 0.7);
-      width: 320px;
-      text-align: center;
-      transition: background-color var(--transition-time), box-shadow var(--transition-time);
-      position: relative;
-    }
+ import express from 'express'; import http from 'http'; import { Server } from 'socket.io'; import axios from 'axios'; import session from 'express-session'; import path from 'path'; import { fileURLToPath } from 'url';
 
-    h2 {
-      margin-bottom: 24px;
-      font-weight: 700;
-      letter-spacing: 1.1px;
-    }
+const __filename = fileURLToPath(import.meta.url); const __dirname = path.dirname(__filename);
 
-    form {
-      display: flex;
-      flex-direction: column;
-      text-align: left;
-    }
+const app = express(); const server = http.createServer(app); const io = new Server(server);
 
-    input[type="text"],
-    input[type="password"] {
-      background-color: var(--input-bg-dark);
-      color: var(--input-text-dark);
-      border: none;
-      padding: 12px 15px;
-      margin-bottom: 5px;
-      font-size: 1rem;
-      border-radius: var(--border-radius);
-      box-shadow: inset 0 0 5px #004080;
-      transition: background-color var(--transition-time), color var(--transition-time);
-      width: 100%;
-      box-sizing: border-box;
-    }
+const PORT = process.env.PORT || 3000;
 
-    input::placeholder {
-      color: #b0c4de;
-    }
+// In-memory user store (demo only) const users = {};  // { username: password }
 
-    input:focus {
-      outline: none;
-      box-shadow: 0 0 8px var(--btn-bg);
-      background-color: #002244;
-    }
+// Express session middleware app.use(session({ secret: 'replace_with_a_strong_secret', resave: false, saveUninitialized: false, cookie: { maxAge: 24 * 60 * 60 * 1000 } }));
 
-    label.remember {
-      display: flex;
-      align-items: center;
-      font-size: 0.9rem;
-      margin: 8px 0 15px 0;
-      color: var(--dark-text);
-      user-select: none;
-    }
+// Parse JSON bodies for API requests app.use(express.json());
 
-    label.remember input {
-      margin-right: 8px;
-      cursor: pointer;
-    }
+// Also parse URL-encoded form data (for form submissions) app.use(express.urlencoded({ extended: true }));
 
-    button {
-      background-color: var(--btn-bg);
-      border: none;
-      color: white;
-      padding: 12px 0;
-      margin-top: 10px;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      border-radius: var(--border-radius);
-      box-shadow: 0 5px 12px rgba(0, 123, 255, 0.5);
-      transition: background-color var(--transition-time), box-shadow var(--transition-time);
-      width: 100%;
-      box-sizing: border-box;
-    }
+// Serve static files (css, js, images, html pages) app.use(express.static(path.join(__dirname, 'public')));
 
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+// Middleware to protect chatroom route function requireLogin(req, res, next) { if (req.session && req.session.username) { next(); } else { res.redirect('/login'); } }
 
-    button:hover:not(:disabled) {
-      background-color: var(--btn-hover-bg);
-      box-shadow: 0 8px 20px rgba(0, 86, 179, 0.7);
-    }
+// Redirect root "/" to login page if not logged in app.get('/', (req, res) => { if (req.session && req.session.username) { res.redirect('/chatroom.html'); } else { res.redirect('/login'); } });
 
-    .toggle-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 15px;
-    }
+// Serve login page app.get('/login', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'login.html')); });
 
-    .toggle-label {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      font-size: 0.9rem;
-      user-select: none;
-      color: var(--dark-text);
-    }
+// Serve signup page app.get('/signup', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'signup.html')); });
 
-    .toggle-label input[type="checkbox"] {
-      display: none;
-    }
+// Handle signup form submission (expects JSON) app.post('/signup', (req, res) => { const { username, email, password } = req.body;
 
-    .slider {
-      position: relative;
-      width: 40px;
-      height: 20px;
-      background-color: #bbb;
-      border-radius: 34px;
-      margin-left: 10px;
-      transition: background-color 0.3s;
-    }
+if (!username || !email || !password) { return res.status(400).json({ success: false, message: 'Missing username, email, or password' }); }
 
-    .slider::before {
-      content: "";
-      position: absolute;
-      height: 16px;
-      width: 16px;
-      left: 2px;
-      bottom: 2px;
-      background-color: white;
-      border-radius: 50%;
-      transition: transform 0.3s;
-    }
+if (users[username]) { return res.status(409).json({ success: false, message: 'Username already exists. Please choose a different one.' }); }
 
-    input:checked + .slider {
-      background-color: var(--btn-bg);
-    }
+// Save user (in-memory) users[username] = { password, email };
 
-    input:checked + .slider::before {
-      transform: translateX(20px);
-    }
+// Respond with success JSON res.json({ success: true, message: 'Account created successfully. You can now log in.' }); });
 
-    .signup-link {
-      margin-top: 15px;
-      font-size: 0.9rem;
-      color: #a9c5ff;
-      text-align: center;
-    }
+// Handle login form submission (expects JSON) app.post('/login', (req, res) => { const { username, password } = req.body; if (!username || !password) return res.status(400).json({ success: false, message: 'Missing username or password' });
 
-    .signup-link a {
-      color: var(--btn-bg);
-      text-decoration: none;
-      font-weight: 600;
-    }
+if (users[username] && users[username].password === password) { req.session.username = username; return res.json({ success: true, message: 'Login successful' }); } else { return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' }); } });
 
-    .signup-link a:hover {
-      text-decoration: underline;
-    }
+// Logout route app.get('/logout', (req, res) => { req.session.destroy(() => { res.redirect('/login'); }); });
 
-    .error-message {
-      color: #ff6b6b;
-      font-size: 0.85rem;
-      margin-bottom: 12px;
-      min-height: 18px;
-    }
+// Protect chatroom.html route app.get('/chatroom.html', requireLogin, (req, res) => { res.sendFile(path.join(__dirname, 'public', 'chatroom.html')); });
 
-    .success-message {
-      color: #4caf50;
-      font-weight: 600;
-      margin-bottom: 15px;
-      font-size: 1rem;
-      text-align: center;
-    }
+// ----------- Your Chatroom, AI, and Media Logic --------------
 
-    body.light {
-      background-color: var(--light-bg);
-      color: var(--light-text);
-    }
+let chatHistory = [];
 
-    body.light .auth-container {
-      background: linear-gradient(135deg, #cce0ff, #e6f0ff);
-      color: var(--light-text);
-    }
+async function askAI(question) { try { const url = https://kaiz-apis.gleeze.com/api/gpt-4.1?ask=${encodeURIComponent(question)}&uid=1268&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea; const res = await axios.get(url); if (res.data && res.data.response) return res.data.response; return "Sorry, AI couldn't respond."; } catch (e) { console.error('AI error:', e.message); return "Error contacting AI."; } }
 
-    body.light input[type="text"],
-    body.light input[type="password"] {
-      background-color: var(--input-bg-light);
-      color: var(--input-text-light);
-      box-shadow: inset 0 0 5px #aaccee;
-    }
+async function ytSearch(query) { try { const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytsearch', { params: { q: query } }); if (res.data && res.data.results && res.data.results.length > 0) return res.data.results[0]; return null; } catch (e) { console.error('YT Search error:', e.message); return null; } }
 
-    body.light input:focus {
-      background-color: #dbe9ff;
-    }
+async function getSongUrl(videoId) { try { const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytdown-mp3', { params: { v: videoId } }); if (res.data && res.data.downloadUrl) return res.data.downloadUrl; return null; } catch (e) { console.error('YT MP3 error:', e.message); return null; } }
 
-    body.light .toggle-label {
-      color: var(--light-text);
-    }
+async function getVideoUrl(videoId) { try { const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytmp4', { params: { v: videoId } }); if (res.data && res.data.downloadUrl) return res.data.downloadUrl; return null; } catch (e) { console.error('YT MP4 error:', e.message); return null; } }
 
-    body.light label.remember {
-      color: var(--light-text);
-    }
+async function generateImage(prompt) { try { const res = await axios.get(https://smfahim.xyz/creartai?prompt=${encodeURIComponent(prompt)}); if (res.data && res.data.imageUrl) return res.data.imageUrl; return null; } catch (e) { console.error('Image generation error:', e.message); return null; } }
 
-    body.light .signup-link {
-      color: #003366;
-    }
+io.on('connection', (socket) => { console.log('User connected:', socket.id);
 
-    body.light .signup-link a {
-      color: var(--btn-bg);
-    }
-  </style>
-</head>
-<body>
-  <div class="auth-container">
-    <div class="toggle-container">
-      <label class="toggle-label" for="modeToggle">
-        Light Mode
-        <input type="checkbox" id="modeToggle" />
-        <span class="slider"></span>
-      </label>
-    </div>
+// Send chat history to new user socket.emit('chatHistory', chatHistory);
 
-    <h2>Login</h2>
+socket.on('message', async (data) => { let message = data.message.trim();
 
-    <form id="loginForm">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
-      <label class="remember">
-        <input type="checkbox" id="rememberMe" />
-        Remember Me
-      </label>
-      <div class="error-message" id="loginMessage"></div>
-      <button type="submit">Login</button>
-    </form>
+// AI commands (start with .ai)
+if (message.toLowerCase().startsWith('.ai')) {
+  const command = message.substring(3).trim();
 
-    <div class="signup-link">
-      Don't have an account? <a href="/signup">Sign up</a>
-    </div>
-  </div>
-
-  <script>
-    // Light/Dark mode toggle
-    const modeToggle = document.getElementById('modeToggle');
-    modeToggle.addEventListener('change', () => {
-      document.body.classList.toggle('light', modeToggle.checked);
-    });
-
-    // Login form submission
-    const loginForm = document.getElementById('loginForm');
-    const loginMessage = document.getElementById('loginMessage');
-
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-
-      if (!username || !password) {
-        loginMessage.textContent = "Please fill in both fields.";
+  if (/send me song/i.test(command)) {
+    const query = command.replace(/send me song/i, '').trim();
+    const video = await ytSearch(query);
+    if (video) {
+      const songUrl = await getSongUrl(video.videoId || video.id);
+      if (songUrl) {
+        const aiReply = `Here's your song: ${video.title}\nListen: ${songUrl}`;
+        const aiMsg = { user: 'AI', message: aiReply };
+        chatHistory.push(aiMsg);
+        io.emit('message', aiMsg);
         return;
       }
+    }
+    io.emit('message', { user: 'AI', message: "Couldn't find the song." });
+    return;
+  }
 
-      try {
-        const response = await fetch('/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ username, password })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          window.location.href = '/chatroom.html';
-        } else {
-          loginMessage.textContent = result.message || "Invalid credentials.";
-        }
-      } catch (err) {
-        loginMessage.textContent = "An error occurred. Try again later.";
+  if (/send me video/i.test(command)) {
+    const query = command.replace(/send me video/i, '').trim();
+    const video = await ytSearch(query);
+    if (video) {
+      const videoUrl = await getVideoUrl(video.videoId || video.id);
+      if (videoUrl) {
+        const aiReply = `Here's your video: ${video.title}\nWatch: ${videoUrl}`;
+        const aiMsg = { user: 'AI', message: aiReply };
+        chatHistory.push(aiMsg);
+        io.emit('message', aiMsg);
+        return;
       }
-    });
-  </script>
-</body>
-</html>
+    }
+    io.emit('message', { user: 'AI', message: "Couldn't find the video." });
+    return;
+  }
+
+  if (/generate image|create image/i.test(command)) {
+    const prompt = command.replace(/generate image|create image/i, '').trim();
+    const imgUrl = await generateImage(prompt || 'cute anime girl');
+    if (imgUrl) {
+      const aiMsg = { user: 'AI', message: `<img src="${imgUrl}" style="max-width:200px; border-radius:8px;" />` };
+      chatHistory.push(aiMsg);
+      io.emit('message', aiMsg);
+      return;
+    }
+    io.emit('message', { user: 'AI', message: "Couldn't generate image." });
+    return;
+  }
+
+  const aiResponse = await askAI(command);
+  const aiMsg = { user: 'AI', message: aiResponse };
+  chatHistory.push(aiMsg);
+  io.emit('message', aiMsg);
+  return;
+}
+
+// Regular chat message
+const chatMsg = {
+  user: data.user || 'Unknown',
+  message: message,
+  replyTo: data.replyTo || null,
+  reactions: data.reactions || []
+};
+chatHistory.push(chatMsg);
+io.emit('message', chatMsg);
+
+});
+
+socket.on('disconnect', () => { console.log('User disconnected:', socket.id); }); });
+
+// Start server server.listen(PORT, () => { console.log(Server listening on port ${PORT}); });
