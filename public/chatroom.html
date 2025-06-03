@@ -140,6 +140,12 @@
       color: #ffffff;
     }
 
+    .message .timestamp {
+      font-size: 0.8rem;
+      color: #888888;
+      margin-top: 5px;
+    }
+
     /* Input Area */
     .input-area {
       display: flex;
@@ -226,7 +232,6 @@
       <div id="emojiPicker" class="emoji-picker"></div>
     </div>
   </div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -239,8 +244,10 @@
       const voiceBtn = document.getElementById("voiceBtn");
       const emojiPicker = document.getElementById("emojiPicker");
       const messagesDiv = document.getElementById("messages");
+      const imageUpload = document.getElementById("imageUpload");
+      const attachBtn = document.getElementById("attachBtn");
 
-      // Append messages to chat
+      // Append messages to the chat
       function appendMessage(data, isSent) {
         const messageElement = document.createElement("div");
         messageElement.classList.add("message", isSent ? "sent" : "received");
@@ -251,20 +258,70 @@
         const contentElement = document.createElement("div");
         contentElement.innerHTML = data.message;
 
+        const timestampElement = document.createElement("div");
+        timestampElement.classList.add("timestamp");
+        timestampElement.textContent = new Date(data.timestamp).toLocaleString();
+
         messageElement.appendChild(usernameElement);
         messageElement.appendChild(contentElement);
+        messageElement.appendChild(timestampElement);
         messagesDiv.appendChild(messageElement);
 
         // Auto-scroll
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
       }
 
-      // Handle send message
+      // Fetch chat history
+      async function fetchChatHistory() {
+        try {
+          const response = await fetch('/api/chat-history'); // Replace with your actual API endpoint
+          if (!response.ok) throw new Error("Failed to fetch chat history");
+
+          const chatHistory = await response.json();
+          chatHistory.forEach((message) => {
+            appendMessage(message, message.user === username);
+          });
+        } catch (error) {
+          console.error("Error loading chat history:", error);
+        }
+      }
+
+      // Load chat history
+      fetchChatHistory();
+
+      // Handle AI commands
+      function handleAICommands(input) {
+        const timestamp = Date.now();
+        if (input.startsWith('.ai')) {
+          socket.emit('ai_command', { user: username, command: input, timestamp });
+          appendMessage({ user: username, message: `Processing AI command: ${input}`, timestamp }, true);
+        } else if (input.startsWith('.play')) {
+          socket.emit('play_command', { user: username, command: input, timestamp });
+          appendMessage({ user: username, message: `Searching for music: ${input}`, timestamp }, true);
+        } else if (input.startsWith('.video')) {
+          socket.emit('video_command', { user: username, command: input, timestamp });
+          appendMessage({ user: username, message: `Fetching video: ${input}`, timestamp }, true);
+        } else if (input.startsWith('.image')) {
+          socket.emit('image_command', { user: username, command: input, timestamp });
+          appendMessage({ user: username, message: `Generating image: ${input}`, timestamp }, true);
+        } else if (input.startsWith('.lyrics')) {
+          socket.emit('lyrics_command', { user: username, command: input, timestamp });
+          appendMessage({ user: username, message: `Fetching lyrics for: ${input}`, timestamp }, true);
+        } else {
+          return false; // Not an AI command
+        }
+        return true; // Handled as an AI command
+      }
+
+      // Send message
       sendBtn.addEventListener("click", () => {
         const message = messageInput.value.trim();
         if (message) {
-          socket.emit("message", { user: username, message });
-          appendMessage({ user: username, message }, true);
+          if (!handleAICommands(message)) {
+            const timestamp = Date.now();
+            socket.emit("message", { user: username, message, timestamp });
+            appendMessage({ user: username, message, timestamp }, true);
+          }
           messageInput.value = "";
         }
       });
@@ -291,10 +348,18 @@
             mediaRecorder.addEventListener("stop", () => {
               const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
               const audioUrl = URL.createObjectURL(audioBlob);
-              socket.emit("message", {
-                user: username,
-                message: `<audio controls src="${audioUrl}"></audio>`,
+              const timestamp = Date.now();
+
+              socket.emit("message", { 
+                user: username, 
+                message: `<audio controls src="${audioUrl}"></audio>`, 
+                timestamp 
               });
+              appendMessage({ 
+                user: username, 
+                message: `<audio controls src="${audioUrl}"></audio>`, 
+                timestamp 
+              }, true);
             });
           })
           .catch((error) => {
@@ -306,6 +371,24 @@
       voiceBtn.addEventListener("mouseup", () => {
         if (mediaRecorder && mediaRecorder.state === "recording") {
           mediaRecorder.stop();
+        }
+      });
+
+      // Handle image upload
+      attachBtn.addEventListener("click", () => {
+        imageUpload.click();
+      });
+
+      imageUpload.addEventListener("change", () => {
+        const file = imageUpload.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const timestamp = Date.now();
+            socket.emit("message", { user: username, message: `<img src="${reader.result}" alt="Uploaded Image">`, timestamp });
+            appendMessage({ user: username, message: `<img src="${reader.result}" alt="Uploaded Image">`, timestamp }, true);
+          };
+          reader.readAsDataURL(file);
         }
       });
 
@@ -326,7 +409,14 @@
         emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
       });
 
-      // Listen for messages from the server
+      // Toggle menu
+      const menuToggle = document.getElementById("menuToggle");
+      const menuItems = document.getElementById("menuItems");
+      menuToggle.addEventListener("click", () => {
+        menuItems.classList.toggle("show");
+      });
+
+      // Listen for incoming messages
       socket.on("message", (data) => appendMessage(data, false));
     });
   </script>
