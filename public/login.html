@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Login</title>
+  <style>
+    body {
+      background: #121212;
+      color: #f5f5f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-container {
+      background: linear-gradient(135deg, #004080, #000000);
+      padding: 30px 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,123,255,0.7);
+      width: 320px;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 24px;
+      font-weight: 700;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    input[type="text"],
+    input[type="password"] {
+      background: #1e1e1e;
+      border: none;
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      font-size: 1rem;
+      border-radius: 8px;
+      color: #fff;
+      box-shadow: inset 0 0 5px #004080;
+    }
+    input::placeholder {
+      color: #b0c4de;
+    }
+    input:focus {
+      outline: none;
+      background: #002244;
+      box-shadow: 0 0 8px #007bff;
+    }
+    button {
+      background: #007bff;
+      border: none;
+      padding: 12px 0;
+      font-weight: 600;
+      font-size: 1rem;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 5px 12px rgba(0,123,255,0.5);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+      box-shadow: 0 8px 20px rgba(0,86,179,0.7);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>User Login</h2>
+    <form id="loginForm" action="/auth/login" method="POST">
+      <input type="text" name="username" placeholder="Username" required autocomplete="username" />
+      <input type="password" name="password" placeholder="Password" required autocomplete="current-password" />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch('/auth/login', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          window.location.href = '/chatroom'; // Redirect on successful login
+        } else {
+          alert('Login failed. Please check your credentials.');
+        }
+      } catch (err) {
+        alert('An error occurred. Please try again.');
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
