@@ -225,6 +225,7 @@
 
  <script>
   document.addEventListener("DOMContentLoaded", () => {
+    // Fetch username from localStorage or set to Anonymous
     const username = localStorage.getItem("username") || "Anonymous";
 
     // Redirect to login page if username is not found
@@ -245,12 +246,9 @@
     const emojiBtn = document.getElementById("emojiBtn");
     const emojiPicker = document.getElementById("emojiPicker");
     const messagesDiv = document.getElementById("messages");
-    const socket = io(); // Connect to the WebSocket server
 
-    // Load saved theme from localStorage
-    if (localStorage.getItem("theme") === "light") {
-      document.body.classList.add("light-mode");
-    }
+    // Connect to the WebSocket server
+    const socket = io(); // Ensure your WebSocket server is running
 
     // Toggle dark/light mode
     darkModeToggle.addEventListener("click", () => {
@@ -271,13 +269,18 @@
       window.location.href = "login.html";
     });
 
-    // Send message
+    // Send message functionality
     sendBtn.addEventListener("click", () => {
       const message = messageInput.value.trim();
       if (message) {
-        socket.emit("message", { user: username, message });
+        if (message.startsWith(".ai")) {
+          // Handle AI-specific commands
+          socket.emit("ai-message", { user: username, message });
+        } else {
+          // Emit the message to the server
+          socket.emit("message", { user: username, message });
+        }
         messageInput.value = "";
-        messageInput.placeholder = "Type a message...";
       }
     });
 
@@ -288,7 +291,69 @@
       }
     });
 
-    // Image uploading
+    // Handle incoming messages
+    socket.on("message", (data) => {
+      const messageElement = document.createElement("div");
+      messageElement.classList.add("message");
+
+      // Add username
+      const usernameElement = document.createElement("strong");
+      usernameElement.textContent = data.user;
+
+      // Append AI tag if applicable
+      if (data.user.toLowerCase() === "ai") {
+        const aiTag = document.createElement("span");
+        aiTag.textContent = " 🤖 AI";
+        aiTag.style.color = "#0288d1";
+        aiTag.style.fontWeight = "bold";
+        aiTag.style.marginLeft = "8px";
+        usernameElement.appendChild(aiTag);
+      }
+
+      // Add message content
+      const contentElement = document.createElement("div");
+      contentElement.innerHTML = data.message;
+
+      // Append to message element
+      messageElement.appendChild(usernameElement);
+      messageElement.appendChild(contentElement);
+
+      // Append to messages container and scroll
+      messagesDiv.appendChild(messageElement);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    // Handle AI-generated messages
+    socket.on("ai-response", (data) => {
+      const messageElement = document.createElement("div");
+      messageElement.classList.add("message");
+
+      // Add AI username
+      const usernameElement = document.createElement("strong");
+      usernameElement.textContent = "AI";
+
+      // Append AI tag
+      const aiTag = document.createElement("span");
+      aiTag.textContent = " 🤖 AI";
+      aiTag.style.color = "#0288d1";
+      aiTag.style.fontWeight = "bold";
+      aiTag.style.marginLeft = "8px";
+      usernameElement.appendChild(aiTag);
+
+      // Add AI response content
+      const contentElement = document.createElement("div");
+      contentElement.innerHTML = data.response;
+
+      // Append to message element
+      messageElement.appendChild(usernameElement);
+      messageElement.appendChild(contentElement);
+
+      // Append to messages container and scroll
+      messagesDiv.appendChild(messageElement);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    // Image upload functionality
     attachBtn.addEventListener("click", () => imageUpload.click());
     imageUpload.addEventListener("change", () => {
       const file = imageUpload.files[0];
@@ -305,7 +370,7 @@
       }
     });
 
-    // Voice note recording
+    // Voice note recording functionality
     let mediaRecorder = null;
     let audioChunks = [];
 
@@ -341,52 +406,22 @@
       }
     });
 
-    // Populate emoji picker
+    // Emoji picker functionality
     const emojis = ["😀", "😂", "😍", "😎", "😭", "😡", "👍", "👎", "🎉", "🔥", "❤️", "💔", "👏", "🙏", "🎶", "✨", "🚀", "🌈", "🍕", "🍔", "⚽", "🏀"];
     emojis.forEach((emoji) => {
-      const span = document.createElement("span");
-      span.textContent = emoji;
-      span.addEventListener("click", () => {
-        messageInput.value += emoji; // Add emoji to the message input
-        emojiPicker.style.display = "none"; // Hide emoji picker
+      const emojiElement = document.createElement("span");
+      emojiElement.textContent = emoji;
+      emojiElement.style.cursor = "pointer";
+      emojiElement.style.margin = "5px";
+      emojiElement.addEventListener("click", () => {
+        messageInput.value += emoji;
+        emojiPicker.style.display = "none";
       });
-      emojiPicker.appendChild(span);
+      emojiPicker.appendChild(emojiElement);
     });
 
-    // Toggle emoji picker visibility
     emojiBtn.addEventListener("click", () => {
       emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
-    });
-
-    // Handle incoming messages
-    socket.on("message", (data) => {
-      const messageElement = document.createElement("div");
-      messageElement.className = "message";
-
-      // Add username
-      const usernameSpan = document.createElement("strong");
-      usernameSpan.textContent = data.user;
-
-      // Add AI tag if applicable
-      if (data.user.toLowerCase() === "ai") {
-        const aiTag = document.createElement("span");
-        aiTag.textContent = " 🤖 AI";
-        aiTag.style.color = "#0288d1";
-        aiTag.style.fontWeight = "bold";
-        aiTag.style.marginLeft = "8px";
-        usernameSpan.appendChild(aiTag);
-      }
-
-      // Add message content
-      const content = document.createElement("div");
-      content.innerHTML = data.message;
-
-      messageElement.appendChild(usernameSpan);
-      messageElement.appendChild(content);
-
-      // Add to chat
-      messagesDiv.appendChild(messageElement);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
   });
 </script>
