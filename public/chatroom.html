@@ -90,7 +90,7 @@
 
     .messages {
       flex: 1;
-      overflow-y: auto;
+      overflow-y: auto; /* Allow scrolling */
       padding: 20px;
       background-color: #181818;
       border-bottom: 2px solid #29b6f6;
@@ -233,57 +233,14 @@
       const username = localStorage.getItem("username") || "Anonymous";
       if (!username) window.location.href = "/login";
 
-      const darkModeToggle = document.getElementById("darkModeToggle");
-      const menuToggle = document.getElementById("menuToggle");
-      const menuItems = document.getElementById("menuItems");
-      const logoutBtn = document.getElementById("logoutBtn");
+      const socket = io();
       const messageInput = document.getElementById("messageInput");
       const sendBtn = document.getElementById("sendBtn");
-      const attachBtn = document.getElementById("attachBtn");
-      const imageUpload = document.getElementById("imageUpload");
       const voiceBtn = document.getElementById("voiceBtn");
-      const emojiBtn = document.getElementById("emojiBtn");
       const emojiPicker = document.getElementById("emojiPicker");
       const messagesDiv = document.getElementById("messages");
 
-      const socket = io();
-
-      // Toggle dark mode
-      darkModeToggle.addEventListener("click", () => {
-        document.body.classList.toggle("light-mode");
-      });
-
-      // Toggle menu
-      menuToggle.addEventListener("click", () => {
-        menuItems.classList.toggle("show");
-      });
-
-      // Logout
-      logoutBtn.addEventListener("click", () => {
-        localStorage.removeItem("username");
-        window.location.href = "/logout";
-      });
-
-      // Send message
-      sendBtn.addEventListener("click", () => {
-        const message = messageInput.value.trim();
-        if (message) {
-          socket.emit("message", { user: username, message });
-          appendMessage({ user: username, message }, true);
-          messageInput.value = "";
-        }
-      });
-
-      messageInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendBtn.click();
-      });
-
-      // Display received messages
-      socket.on("message", (data) => {
-        appendMessage(data, false);
-      });
-
-      // Append message to chat
+      // Append messages to chat
       function appendMessage(data, isSent) {
         const messageElement = document.createElement("div");
         messageElement.classList.add("message", isSent ? "sent" : "received");
@@ -297,42 +254,26 @@
         messageElement.appendChild(usernameElement);
         messageElement.appendChild(contentElement);
         messagesDiv.appendChild(messageElement);
+
+        // Auto-scroll
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
       }
 
-      // Emoji Picker
-      const emojis = ["😀", "😂", "😍", "😎", "😭", "😡", "👍", "👎", "🎉", "🔥", "❤️"];
-      emojis.forEach((emoji) => {
-        const span = document.createElement("span");
-        span.textContent = emoji;
-        span.addEventListener("click", () => {
-          messageInput.value += emoji;
-          emojiPicker.style.display = "none";
-        });
-        emojiPicker.appendChild(span);
-      });
-
-      emojiBtn.addEventListener("click", () => {
-        emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
-      });
-
-      // Image Upload
-      attachBtn.addEventListener("click", () => imageUpload.click());
-      imageUpload.addEventListener("change", () => {
-        const file = imageUpload.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            socket.emit("message", {
-              user: username,
-              message: `<img src="${reader.result}" alt="Uploaded Image" />`,
-            });
-          };
-          reader.readAsDataURL(file);
+      // Handle send message
+      sendBtn.addEventListener("click", () => {
+        const message = messageInput.value.trim();
+        if (message) {
+          socket.emit("message", { user: username, message });
+          appendMessage({ user: username, message }, true);
+          messageInput.value = "";
         }
       });
 
-      // Voice Recording
+      messageInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendBtn.click();
+      });
+
+      // Handle voice recording
       let mediaRecorder = null;
       let audioChunks = [];
 
@@ -357,8 +298,8 @@
             });
           })
           .catch((error) => {
-            alert("Microphone access denied!");
-            console.error("Error accessing microphone:", error);
+            alert("Error accessing microphone!");
+            console.error(error);
           });
       });
 
@@ -367,6 +308,26 @@
           mediaRecorder.stop();
         }
       });
+
+      // Emoji Picker
+      const emojis = ["😀", "😂", "😍", "😎", "😭", "😡", "👍", "👎", "🎉", "🔥", "❤️"];
+      emojis.forEach((emoji) => {
+        const span = document.createElement("span");
+        span.textContent = emoji;
+        span.addEventListener("click", () => {
+          messageInput.value += emoji;
+          emojiPicker.style.display = "none";
+        });
+        emojiPicker.appendChild(span);
+      });
+
+      const emojiBtn = document.getElementById("emojiBtn");
+      emojiBtn.addEventListener("click", () => {
+        emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
+      });
+
+      // Listen for messages from the server
+      socket.on("message", (data) => appendMessage(data, false));
     });
   </script>
 </body>
