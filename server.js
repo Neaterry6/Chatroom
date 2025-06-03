@@ -15,21 +15,21 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// Simple in-memory user store (for demo only!)
+// In-memory user store (demo only)
 const users = {};  // { username: password }
 
 // Express session middleware
 app.use(session({
-  secret: 'replace_with_a_strong_secret', 
+  secret: 'replace_with_a_strong_secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 day
+  cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
 // Body parser for POST form data
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (css, js, images, signup.html, chatroom.html)
+// Serve static files (css, js, images, html pages)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware to protect chatroom route
@@ -37,64 +37,68 @@ function requireLogin(req, res, next) {
   if (req.session && req.session.username) {
     next();
   } else {
-    res.redirect('/signup');
+    res.redirect('/login');
   }
 }
 
-// Redirect root "/" based on session
+// Redirect root "/" to login page if not logged in
 app.get('/', (req, res) => {
   if (req.session && req.session.username) {
     res.redirect('/chatroom.html');
   } else {
-    res.redirect('/signup');
+    res.redirect('/login');
   }
 });
 
-// Serve your combined signup/login page
+// Serve login page
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Serve signup page
 app.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'signup.html'));
 });
 
-// POST /signup handles both signup and login depending on action field
+// Handle signup form submission
 app.post('/signup', (req, res) => {
-  const { username, password, action } = req.body;
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).send('Missing username or password');
 
-  if (!username || !password) {
-    return res.status(400).send('Missing username or password');
+  if (users[username]) {
+    return res.status(409).send('Username already exists. Please choose a different one.');
   }
 
-  if (action === 'signup') {
-    if (users[username]) {
-      return res.status(409).send('Username already taken. Please try a different one.');
-    }
-    users[username] = password;
+  users[username] = password;
+  res.redirect('/login');
+});
+
+// Handle login form submission
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).send('Missing username or password');
+
+  if (users[username] && users[username] === password) {
     req.session.username = username;
     return res.redirect('/chatroom.html');
-  } else if (action === 'login') {
-    if (users[username] && users[username] === password) {
-      req.session.username = username;
-      return res.redirect('/chatroom.html');
-    } else {
-      return res.status(401).send('Invalid credentials. Please try again.');
-    }
   } else {
-    return res.status(400).send('Invalid action');
+    return res.status(401).send('Invalid credentials. Please try again.');
   }
 });
 
 // Logout route
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/signup');
+    res.redirect('/login');
   });
 });
 
-// Protect chatroom.html so only logged-in users can access
+// Protect chatroom.html route
 app.get('/chatroom.html', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chatroom.html'));
 });
 
-// --- Your existing chat + AI logic below ---
+// ------------- Your Chatroom, AI, and Media Logic ---------------
 
 let chatHistory = [];
 
@@ -102,7 +106,7 @@ async function askAI(question) {
   try {
     const url = `https://kaiz-apis.gleeze.com/api/gpt-4.1?ask=${encodeURIComponent(question)}&uid=1268&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea`;
     const res = await axios.get(url);
-    if(res.data && res.data.response) return res.data.response;
+    if (res.data && res.data.response) return res.data.response;
     return "Sorry, AI couldn't respond.";
   } catch (e) {
     console.error('AI error:', e.message);
@@ -113,7 +117,7 @@ async function askAI(question) {
 async function ytSearch(query) {
   try {
     const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytsearch', { params: { q: query } });
-    if(res.data && res.data.results && res.data.results.length > 0) return res.data.results[0];
+    if (res.data && res.data.results && res.data.results.length > 0) return res.data.results[0];
     return null;
   } catch (e) {
     console.error('YT Search error:', e.message);
@@ -124,7 +128,7 @@ async function ytSearch(query) {
 async function getSongUrl(videoId) {
   try {
     const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytdown-mp3', { params: { v: videoId } });
-    if(res.data && res.data.downloadUrl) return res.data.downloadUrl;
+    if (res.data && res.data.downloadUrl) return res.data.downloadUrl;
     return null;
   } catch (e) {
     console.error('YT MP3 error:', e.message);
@@ -135,7 +139,7 @@ async function getSongUrl(videoId) {
 async function getVideoUrl(videoId) {
   try {
     const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytmp4', { params: { v: videoId } });
-    if(res.data && res.data.downloadUrl) return res.data.downloadUrl;
+    if (res.data && res.data.downloadUrl) return res.data.downloadUrl;
     return null;
   } catch (e) {
     console.error('YT MP4 error:', e.message);
@@ -146,7 +150,7 @@ async function getVideoUrl(videoId) {
 async function generateImage(prompt) {
   try {
     const res = await axios.get(`https://smfahim.xyz/creartai?prompt=${encodeURIComponent(prompt)}`);
-    if(res.data && res.data.imageUrl) return res.data.imageUrl;
+    if (res.data && res.data.imageUrl) return res.data.imageUrl;
     return null;
   } catch (e) {
     console.error('Image generation error:', e.message);
@@ -164,15 +168,15 @@ io.on('connection', (socket) => {
     let message = data.message.trim();
 
     // AI commands (start with .ai)
-    if(message.toLowerCase().startsWith('.ai')) {
+    if (message.toLowerCase().startsWith('.ai')) {
       const command = message.substring(3).trim();
 
-      if(/send me song/i.test(command)) {
+      if (/send me song/i.test(command)) {
         const query = command.replace(/send me song/i, '').trim();
         const video = await ytSearch(query);
-        if(video) {
+        if (video) {
           const songUrl = await getSongUrl(video.videoId || video.id);
-          if(songUrl) {
+          if (songUrl) {
             const aiReply = `Here's your song: ${video.title}\nListen: ${songUrl}`;
             const aiMsg = { user: 'AI', message: aiReply };
             chatHistory.push(aiMsg);
@@ -184,12 +188,12 @@ io.on('connection', (socket) => {
         return;
       }
 
-      if(/send me video/i.test(command)) {
+      if (/send me video/i.test(command)) {
         const query = command.replace(/send me video/i, '').trim();
         const video = await ytSearch(query);
-        if(video) {
+        if (video) {
           const videoUrl = await getVideoUrl(video.videoId || video.id);
-          if(videoUrl) {
+          if (videoUrl) {
             const aiReply = `Here's your video: ${video.title}\nWatch: ${videoUrl}`;
             const aiMsg = { user: 'AI', message: aiReply };
             chatHistory.push(aiMsg);
@@ -201,10 +205,10 @@ io.on('connection', (socket) => {
         return;
       }
 
-      if(/generate image/i.test(command) || /create image/i.test(command)) {
+      if (/generate image|create image/i.test(command)) {
         const prompt = command.replace(/generate image|create image/i, '').trim();
         const imgUrl = await generateImage(prompt || 'cute anime girl');
-        if(imgUrl) {
+        if (imgUrl) {
           const aiMsg = { user: 'AI', message: `<img src="${imgUrl}" style="max-width:200px; border-radius:8px;" />` };
           chatHistory.push(aiMsg);
           io.emit('message', aiMsg);
@@ -221,7 +225,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Normal chat message
+    // Regular chat message
     const chatMsg = {
       user: data.user || 'Unknown',
       message: message,
@@ -237,6 +241,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// Start server
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
