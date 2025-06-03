@@ -233,7 +233,7 @@
 
     <h2>Sign Up</h2>
 
-    <form id="signupForm" action="/signup" method="POST" novalidate>
+    <form id="signupForm" novalidate>
       <input type="text" name="username" placeholder="Username" required autocomplete="username" />
       <div id="usernameError" class="error-message"></div>
 
@@ -248,8 +248,8 @@
 
       <button type="submit" id="submitBtn">Create Account</button>
 
-      <div id="serverError" class="error-message"></div>
       <div id="formSuccess" class="success-message" style="display:none;"></div>
+      <div id="serverError" class="error-message"></div>
     </form>
 
     <div class="login-link">
@@ -259,6 +259,15 @@
 
   <script>
     const modeToggle = document.getElementById('modeToggle');
+    const form = document.getElementById('signupForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const usernameError = document.getElementById('usernameError');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    const confirmPasswordError = document.getElementById('confirmPasswordError');
+    const formSuccess = document.getElementById('formSuccess');
+    const serverError = document.getElementById('serverError');
 
     // Set initial mode from localStorage
     if (localStorage.getItem('mode') === 'light') {
@@ -276,20 +285,10 @@
       }
     });
 
-    const form = document.getElementById('signupForm');
-    const submitBtn = document.getElementById('submitBtn');
-
-    const usernameError = document.getElementById('usernameError');
-    const emailError = document.getElementById('emailError');
-    const passwordError = document.getElementById('passwordError');
-    const confirmPasswordError = document.getElementById('confirmPasswordError');
-    const serverError = document.getElementById('serverError');
-    const formSuccess = document.getElementById('formSuccess');
-
     // Simple but effective email regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    function clearErrors( ) {
+    function clearErrors() {
       usernameError.textContent = '';
       emailError.textContent = '';
       passwordError.textContent = '';
@@ -300,73 +299,87 @@
     }
 
     form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearErrors();
+  e.preventDefault();
+  clearErrors();
 
-      const username = form.username.value.trim();
-      const email = form.email.value.trim();
-      const password = form.password.value;
-      const confirmPassword = form.confirmPassword.value;
+  const username = form.username.value.trim();
+  const email = form.email.value.trim();
+  const password = form.password.value;
+  const confirmPassword = form.confirmPassword.value;
 
-      let hasError = false;
+  let valid = true;
 
-      if (username.length < 3) {
-        usernameError.textContent = 'Username must be at least 3 characters';
-        hasError = true;
-      }
+  if (!username) {
+    usernameError.textContent = 'Username is required.';
+    valid = false;
+  } else if (username.length < 3) {
+    usernameError.textContent = 'Username must be at least 3 characters.';
+    valid = false;
+  }
 
-      if (!emailRegex.test(email)) {
-        emailError.textContent = 'Please enter a valid email address';
-        hasError = true;
-      }
+  if (!email) {
+    emailError.textContent = 'Email is required.';
+    valid = false;
+  } else if (!emailRegex.test(email)) {
+    emailError.textContent = 'Please enter a valid email address.';
+    valid = false;
+  }
 
-      if (password.length < 6) {
-        passwordError.textContent = 'Password must be at least 6 characters';
-        hasError = true;
-      }
+  if (!password) {
+    passwordError.textContent = 'Password is required.';
+    valid = false;
+  } else if (password.length < 6) {
+    passwordError.textContent = 'Password must be at least 6 characters.';
+    valid = false;
+  }
 
-      if (confirmPassword !== password) {
-        confirmPasswordError.textContent = 'Passwords do not match';
-        hasError = true;
-      }
+  if (!confirmPassword) {
+    confirmPasswordError.textContent = 'Please confirm your password.';
+    valid = false;
+  } else if (password !== confirmPassword) {
+    confirmPasswordError.textContent = 'Passwords do not match.';
+    valid = false;
+  }
 
-      if (hasError) return;
+  if (!valid) return;
 
-      // Disable the button to prevent multiple submits
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating...';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating Account...';
 
-      try {
-        // Example: send form data to your backend (replace /signup with your endpoint)
-        const response = await fetch('/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ username, email, password })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          serverError.textContent = errorData.message || 'Failed to create account';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
-          return;
-        }
-
-        formSuccess.textContent = 'Account created successfully! Redirecting...';
-        formSuccess.style.display = 'block';
-
-        setTimeout(() => {
-          window.location.href = '/login.html';
-        }, 2000);
-
-      } catch (err) {
-        serverError.textContent = 'Network error. Please try again later.';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Account';
-      }
+  try {
+    const response = await fetch('http://localhost:3000/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, email, password })
     });
-  </script>
+
+    if (!response.ok) {
+      // Try to get error message from response JSON
+      const errorData = await response.json().catch(() => null);
+      serverError.textContent = errorData?.message || 'Network error. Please try again later.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
+      return;
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      formSuccess.style.display = 'block';
+      formSuccess.textContent = 'Account created successfully! You can now log in.';
+      form.reset();
+    } else {
+      serverError.textContent = data.message || 'Failed to create account.';
+    }
+  } catch (error) {
+    serverError.textContent = 'Network error. Please try again later.';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create Account';
+  }
+});  
+</script>
 </body>
 </html>
