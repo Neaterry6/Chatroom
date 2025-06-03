@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sign Up</title>
   <style>
+    /* Your entire CSS pasted as you provided */
     :root {
       --blue: #007bff;
       --black: #121212;
@@ -299,87 +300,80 @@
     }
 
     form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  clearErrors();
+      e.preventDefault();
+      clearErrors();
 
-  const username = form.username.value.trim();
-  const email = form.email.value.trim();
-  const password = form.password.value;
-  const confirmPassword = form.confirmPassword.value;
+      const username = form.username.value.trim();
+      const email = form.email.value.trim();
+      const password = form.password.value;
+      const confirmPassword = form.confirmPassword.value;
 
-  let valid = true;
+      let hasError = false;
 
-  if (!username) {
-    usernameError.textContent = 'Username is required.';
-    valid = false;
-  } else if (username.length < 3) {
-    usernameError.textContent = 'Username must be at least 3 characters.';
-    valid = false;
-  }
+      if (!username) {
+        usernameError.textContent = 'Username is required.';
+        hasError = true;
+      } else if (username.length < 3) {
+        usernameError.textContent = 'Username must be at least 3 characters.';
+        hasError = true;
+      }
 
-  if (!email) {
-    emailError.textContent = 'Email is required.';
-    valid = false;
-  } else if (!emailRegex.test(email)) {
-    emailError.textContent = 'Please enter a valid email address.';
-    valid = false;
-  }
+      if (!email) {
+        emailError.textContent = 'Email is required.';
+        hasError = true;
+      } else if (!emailRegex.test(email)) {
+        emailError.textContent = 'Email is invalid.';
+        hasError = true;
+      }
 
-  if (!password) {
-    passwordError.textContent = 'Password is required.';
-    valid = false;
-  } else if (password.length < 6) {
-    passwordError.textContent = 'Password must be at least 6 characters.';
-    valid = false;
-  }
+      if (!password) {
+        passwordError.textContent = 'Password is required.';
+        hasError = true;
+      } else if (password.length < 8) {
+        passwordError.textContent = 'Password must be at least 8 characters.';
+        hasError = true;
+      }
 
-  if (!confirmPassword) {
-    confirmPasswordError.textContent = 'Please confirm your password.';
-    valid = false;
-  } else if (password !== confirmPassword) {
-    confirmPasswordError.textContent = 'Passwords do not match.';
-    valid = false;
-  }
+      if (!confirmPassword) {
+        confirmPasswordError.textContent = 'Please confirm your password.';
+        hasError = true;
+      } else if (password !== confirmPassword) {
+        confirmPasswordError.textContent = 'Passwords do not match.';
+        hasError = true;
+      }
 
-  if (!valid) return;
+      if (hasError) return;
 
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Creating Account...';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
 
-  try {
-    const response = await fetch('http://localhost:3000/signup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ username, email, password })
+      try {
+        const res = await fetch('/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          serverError.textContent = data.message || 'Network error. Please try again later.';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
+          return;
+        }
+
+        const data = await res.json();
+        formSuccess.style.display = 'block';
+        formSuccess.textContent = data.message || 'Account created successfully!';
+
+        form.reset();
+      } catch (error) {
+        serverError.textContent = 'Network error. Please try again later.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+      }
     });
-
-    if (!response.ok) {
-      // Try to get error message from response JSON
-      const errorData = await response.json().catch(() => null);
-      serverError.textContent = errorData?.message || 'Network error. Please try again later.';
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Create Account';
-      return;
-    }
-
-    const data = await response.json();
-
-    if (data.success) {
-      formSuccess.style.display = 'block';
-      formSuccess.textContent = 'Account created successfully! You can now log in.';
-      form.reset();
-    } else {
-      serverError.textContent = data.message || 'Failed to create account.';
-    }
-  } catch (error) {
-    serverError.textContent = 'Network error. Please try again later.';
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Create Account';
-  }
-});  
-</script>
+  </script>
 </body>
 </html>
