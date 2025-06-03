@@ -23,7 +23,6 @@
       --transition-time: 0.3s;
     }
 
-    /* Default dark mode */
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -101,7 +100,6 @@
       box-shadow: 0 8px 20px rgba(0, 86, 179, 0.7);
     }
 
-    /* Toggle switch container */
     .toggle-container {
       display: flex;
       justify-content: flex-end;
@@ -117,12 +115,10 @@
       color: var(--dark-text);
     }
 
-    /* Hide default checkbox */
     .toggle-label input[type="checkbox"] {
       display: none;
     }
 
-    /* Custom toggle switch */
     .slider {
       position: relative;
       width: 40px;
@@ -153,7 +149,6 @@
       transform: translateX(20px);
     }
 
-    /* LIGHT MODE STYLES */
     body.light {
       background-color: var(--light-bg);
       color: var(--light-text);
@@ -196,7 +191,7 @@
 
     <h2>Login</h2>
 
-    <form action="/login" method="POST">
+    <form id="loginForm" action="/login" method="POST">
       <input type="text" name="username" placeholder="Username" required autocomplete="username" />
       <input type="password" name="password" placeholder="Password" required autocomplete="current-password" />
       <button type="submit">Login</button>
@@ -207,18 +202,40 @@
     const modeToggle = document.getElementById('modeToggle');
 
     // Load stored mode from localStorage
-    if(localStorage.getItem('mode') === 'light') {
+    if (localStorage.getItem('mode') === 'light') {
       document.body.classList.add('light');
       modeToggle.checked = true;
     }
 
     modeToggle.addEventListener('change', () => {
-      if(modeToggle.checked) {
+      if (modeToggle.checked) {
         document.body.classList.add('light');
         localStorage.setItem('mode', 'light');
       } else {
         document.body.classList.remove('light');
         localStorage.setItem('mode', 'dark');
+      }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = new FormData(form);
+
+      try {
+        const response = await fetch(form.action, {
+          method: form.method,
+          body: data
+        });
+
+        if (response.ok) {
+          // Redirect to home/dashboard after login
+          window.location.href = '/dashboard.html';
+        } else {
+          alert('Invalid username or password.');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
       }
     });
   </script>
