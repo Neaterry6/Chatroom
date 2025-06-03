@@ -6,6 +6,7 @@ import session from 'express-session';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs-extra';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,35 +16,47 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
+const saltRounds = 10;
 
-// Users file
+// Users file path
 const usersFile = path.join(__dirname, 'data', 'users.json');
 
-// Ensure users file exists
+// Ensure users file exists and load users
 if (!fs.existsSync(usersFile)) {
   fs.ensureFileSync(usersFile);
   fs.writeJsonSync(usersFile, {});
 }
 
-// Load users from file
-let users = fs.readJsonSync(usersFile);
+let users = {};
+(async () => {
+  try {
+    users = await fs.readJson(usersFile);
+  } catch {
+    users = {};
+  }
+})();
 
-// Express session middleware
-app.use(session({
-  secret: 'replace_with_a_strong_secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 }
-}));
+// Chat history array in memory
+const chatHistory = [];
 
-// Parse JSON and form data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware to protect chatroom route
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || 'replace_with_a_strong_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, secure: false }
+});
+app.use(sessionMiddleware);
+
+// Share session with socket.io
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+
+// Middleware to require login
 function requireLogin(req, res, next) {
   if (req.session && req.session.username) {
     next();
@@ -52,208 +65,205 @@ function requireLogin(req, res, next) {
   }
 }
 
-// Redirect root to login page
+// Routes
 app.get('/', (req, res) => {
-  if (req.session && req.session.username) {
-    res.redirect('/chatroom.html');
-  } else {
-    res.redirect('/login');
-  }
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Serve login page
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Serve signup page
 app.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'signup.html'));
 });
 
-// Handle signup
-app.post('/signup', (req, res) => {
-  const { username, email, password } = req.body;
-
-  if (!username || !email || !password) {
-    return res.status(400).json({ success: false, message: 'Missing username, email, or password' });
-  }
-
-  if (users[username]) {
-    return res.status(409).json({ success: false, message: 'Username already exists. Please choose a different one.' });
-  }
-
-  users[username] = { password, email };
-  fs.writeJsonSync(usersFile, users);
-
-  res.json({ success: true, message: 'Account created successfully. You can now log in.' });
+app.get('/chatroom.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chatroom.html'));
 });
 
-// Handle login
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ success: false, message: 'Missing username or password' });
-  }
-
-  if (users[username] && users[username].password === password) {
-    req.session.username = username;
-    return res.json({ success: true, message: 'Login successful' });
-  } else {
-    return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
-  }
-});
-
-// Logout route
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/login');
   });
 });
 
-// Protect chatroom.html route
-app.get('/chatroom.html', requireLogin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'chatroom.html'));
+// Signup route
+app.post('/signup', async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Missing username, email, or password' });
+  }
+  if (users[username]) {
+    return res.status(409).json({ success: false, message: 'Username already exists. Please choose a different one.' });
+  }
+  try {
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    users[username] = { password: hashedPassword, email };
+    await fs.writeJson(usersFile, users);
+    res.json({ success: true, message: 'Account created.error('Signup error:', e);
+    res.status(500).json({ success: false, message: 'Server error during signup.' });
+  }
 });
 
-// --------- Chat & AI logic ---------
-
-let chatHistory = [];
-
-async function askAI(question) {
-  try {
-    const url = `https://kaiz-apis.gleeze.com/api/gpt-4.1?ask=${encodeURIComponent(question)}&uid=1268&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea`;
-    const res = await axios.get(url);
-    if (res.data && res.data.response) return res.data.response;
-    return "Sorry, AI couldn't respond.";
-  } catch (e) {
-    console.error('AI error:', e.message);
-    return "Error contacting AI.";
+// Login route
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'Missing username or password' });
   }
-}
-
-async function ytSearch(query) {
   try {
-    const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytsearch', { params: { q: query } });
-    if (res.data && res.data.results && res.data.results.length > 0) return res.data.results[0];
-    return null;
+    const user = users[username];
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
+    }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
+    }
+    req.session.username = username;
+    res.json({ success: true, message: 'Login successful' });
   } catch (e) {
-    console.error('YT Search error:', e.message);
-    return null;
+    console.error('Login error:', e);
+    res.status(500).json({ success: false, message: 'Unable to connect to the server. Please try again later.' });
   }
-}
+});
 
-async function getSongUrl(videoId) {
-  try {
-    const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytdown-mp3', { params: { v: videoId } });
-    if (res.data && res.data.downloadUrl) return res.data.downloadUrl;
-    return null;
-  } catch (e) {
-    console.error('YT MP3 error:', e.message);
-    return null;
-  }
-}
-
-async function getVideoUrl(videoId) {
-  try {
-    const res = await axios.get('https://kaiz-apis.gleeze.com/api/ytmp4', { params: { v: videoId } });
-    if (res.data && res.data.downloadUrl) return res.data.downloadUrl;
-    return null;
-  } catch (e) {
-    console.error('YT MP4 error:', e.message);
-    return null;
-  }
-}
-
-async function generateImage(prompt) {
-  try {
-    const res = await axios.get(`https://smfahim.xyz/creartai?prompt=${encodeURIComponent(prompt)}`);
-    if (res.data && res.data.imageUrl) return res.data.imageUrl;
-    return null;
-  } catch (e) {
-    console.error('Image generation error:', e.message);
-    return null;
-  }
-}
-
+// Socket.io connection and chat handling
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  const session = socket.request.session;
+  if (!session || !session.username) {
+    console.log('Unauthenticated socket tried to connect:', socket.id);
+    return socket.disconnect(true);
+  }
 
+  const username = session.username;
+  console.log(`User connected: ${username} (${socket.id})`);
+
+  // Send chat history to newly connected client
   socket.emit('chatHistory', chatHistory);
 
   socket.on('message', async (data) => {
     let message = data.message.trim();
 
+    // AI Command
     if (message.toLowerCase().startsWith('.ai')) {
-      const command = message.substring(3).trim();
-
-      if (/send me song/i.test(command)) {
-        const query = command.replace(/send me song/i, '').trim();
-        const video = await ytSearch(query);
-        if (video) {
-          const songUrl = await getSongUrl(video.videoId || video.id);
-          if (songUrl) {
-            const aiReply = `Here's your song: ${video.title}\nListen: ${songUrl}`;
-            const aiMsg = { user: 'AI', message: aiReply };
-            chatHistory.push(aiMsg);
-            io.emit('message', aiMsg);
-            return;
-          }
-        }
-        io.emit('message', { user: 'AI', message: "Couldn't find the song." });
-        return;
-      }
-
-      if (/send me video/i.test(command)) {
-        const query = command.replace(/send me video/i, '').trim();
-        const video = await ytSearch(query);
-        if (video) {
-          const videoUrl = await getVideoUrl(video.videoId || video.id);
-          if (videoUrl) {
-            const aiReply = `Here's your video: ${video.title}\nWatch: ${videoUrl}`;
-            const aiMsg = { user: 'AI', message: aiReply };
-            chatHistory.push(aiMsg);
-            io.emit('message', aiMsg);
-            return;
-          }
-        }
-        io.emit('message', { user: 'AI', message: "Couldn't find the video." });
-        return;
-      }
-
-      if (/generate image|create image/i.test(command)) {
-        const prompt = command.replace(/generate image|create image/i, '').trim();
-        const imgUrl = await generateImage(prompt || 'cute anime girl');
-        if (imgUrl) {
-          const aiMsg = { user: 'AI', message: `<img src="${imgUrl}" style="max-width:200px; border-radius:8px;" />` };
-          chatHistory.push(aiMsg);
-          io.emit('message', aiMsg);
+      try {
+        const question = message.substring(3).trim();
+        if (!question) {
+          socket.emit('message', { user: 'System', message: 'Please provide a question after ".ai".' });
           return;
         }
-        io.emit('message', { user: 'AI', message: "Couldn't generate image." });
-        return;
-      }
 
-      const aiResponse = await askAI(command);
-      const aiMsg = { user: 'AI', message: aiResponse };
-      chatHistory.push(aiMsg);
-      io.emit('message', aiMsg);
+        const response = await axios.get(`https://kaiz-apis.gleeze.com/api/gpt-4.1?ask=${encodeURIComponent(question)}&uid=1268&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea`);
+        socket.emit('message', { user: 'Michiko AI', message: response.data.response });
+      } catch (error) {
+        console.error('AI error:', error);
+        socket.emit('message', { user: 'System', message: 'AI service is temporarily unavailable.' });
+      }
       return;
     }
 
+    // Play Command
+    if (message.toLowerCase().startsWith('.play')) {
+      try {
+        const song = message.substring(5).trim();
+        if (!song) {
+          socket.emit('message', { user: 'System', message: 'Please provide a song name after ".play".' });
+          return;
+        }
+
+        const searchResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytsearch?q=${encodeURIComponent(song)}`);
+        const songUrl = searchResponse.data.results[0]?.url;
+        if (!songUrl) {
+          socket.emit('message', { user: 'System', message: 'Song not found.' });
+          return;
+        }
+
+        const downloadResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytdown-mp3?url=${encodeURIComponent(songUrl)}`);
+        socket.emit('message', { user: 'Michiko AI', message: `Download your song here: ${downloadResponse.data.download}` });
+      } catch (error) {
+        console.error('Play command error:', error);
+        socket.emit('message', { user: 'System', message: 'Unable to process your request. Try again later.' });
+      }
+      return;
+    }
+
+    // Video Command
+    if (message.toLowerCase().startsWith('.video')) {
+      try {
+        const videoQuery = message.substring(6).trim();
+        if (!videoQuery) {
+          socket.emit('message', { user: 'System', message: 'Please provide a video name after ".video".' });
+          return;
+        }
+
+        const searchResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytsearch?q=${encodeURIComponent(videoQuery)}`);
+        const videoUrl = searchResponse.data.results[0]?.url;
+        if (!videoUrl) {
+          socket.emit('message', { user: 'System', message: 'Video not found.' });
+          return;
+        }
+
+        const downloadResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytmp4?url=${encodeURIComponent(videoUrl)}`);
+        socket.emit('message', { user: 'Michiko AI', message: `Download your video here: ${downloadResponse.data.download}` });
+      } catch (error) {
+        console.error('Video command error:', error);
+        socket.emit('message', { user: 'System', message: 'Unable to process your request. Try again later.' });
+      }
+      return;
+    }
+
+    // Image Generation
+    if (message.toLowerCase().startsWith('.image')) {
+      try {
+        const prompt = message.substring(6).trim();
+        if (!prompt) {
+          socket.emit('message', { user: 'System', message: 'Please provide a prompt after ".image".' });
+          return;
+        }
+
+        const response = await axios.get(`https://smfahim.xyz/creartai?prompt=${encodeURIComponent(prompt)}`);
+        socket.emit('message', { user: 'Michiko AI', message: `Here is your generated image: ${response.data.url}` });
+      } catch (error) {
+        console.error('Image generation error:', error);
+        socket.emit('message', { user: 'System', message: 'Unable to generate image at this time.' });
+      }
+      return;
+    }
+
+    // Lyrics Generation
+    if (message.toLowerCase().startsWith('.lyrics')) {
+      try {
+        const songTitle = message.substring(7).trim();
+        if (!songTitle) {
+          socket.emit('message', { user: 'System', message: 'Please provide a song title after ".lyrics".' });
+          return;
+        }
+
+        const response = await axios.get(`https://kaiz-apis.gleeze.com/api/shazam-lyrics?title=${encodeURIComponent(songTitle)}&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea`);
+        socket.emit('message', { user: 'Michiko AI', message: response.data.lyrics || 'Lyrics not found.' });
+      } catch (error) {
+        console.error('Lyrics generation error:', error);
+        socket.emit('message', { user: 'System', message: 'Unable to fetch lyrics at this time.' });
+      }
+      return;
+    }
+
+    // Normal chat message
     const chatMsg = {
-      user: data.user || 'Unknown',
-      message: message,
+      user: username,
+      message,
       replyTo: data.replyTo || null,
-      reactions: data.reactions || []
+      reactions: []
     };
+
     chatHistory.push(chatMsg);
     io.emit('message', chatMsg);
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log(`User disconnected: ${username} (${socket.id})`);
   });
 });
 
