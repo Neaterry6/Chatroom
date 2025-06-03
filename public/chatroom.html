@@ -233,192 +233,192 @@
     </div>
   </div>
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const username = localStorage.getItem("username") || "Anonymous";
-      if (!username) window.location.href = "/login";
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const username = localStorage.getItem("username") || "Anonymous";
+    if (!username) window.location.href = "/login";
 
-      const socket = io();
-      const messageInput = document.getElementById("messageInput");
-      const sendBtn = document.getElementById("sendBtn");
-      const voiceBtn = document.getElementById("voiceBtn");
-      const emojiPicker = document.getElementById("emojiPicker");
-      const messagesDiv = document.getElementById("messages");
-      const imageUpload = document.getElementById("imageUpload");
-      const attachBtn = document.getElementById("attachBtn");
+    const socket = io();
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const voiceBtn = document.getElementById("voiceBtn");
+    const emojiPicker = document.getElementById("emojiPicker");
+    const messagesDiv = document.getElementById("messages");
+    const imageUpload = document.getElementById("imageUpload");
+    const attachBtn = document.getElementById("attachBtn");
 
-      // Append messages to the chat
-      function appendMessage(data, isSent) {
-        const messageElement = document.createElement("div");
-        messageElement.classList.add("message", isSent ? "sent" : "received");
+    // Append messages to the chat
+    function appendMessage(data, isSent) {
+      const messageElement = document.createElement("div");
+      messageElement.classList.add("message", isSent ? "sent" : "received");
 
-        const usernameElement = document.createElement("strong");
-        usernameElement.textContent = data.user;
+      const usernameElement = document.createElement("strong");
+      usernameElement.textContent = data.user;
 
-        const contentElement = document.createElement("div");
-        contentElement.innerHTML = data.message;
+      const contentElement = document.createElement("div");
+      contentElement.innerHTML = data.message;
 
-        const timestampElement = document.createElement("div");
-        timestampElement.classList.add("timestamp");
-        timestampElement.textContent = new Date(data.timestamp).toLocaleString();
+      const timestampElement = document.createElement("div");
+      timestampElement.classList.add("timestamp");
+      timestampElement.textContent = new Date(data.timestamp).toLocaleString();
 
-        messageElement.appendChild(usernameElement);
-        messageElement.appendChild(contentElement);
-        messageElement.appendChild(timestampElement);
-        messagesDiv.appendChild(messageElement);
+      messageElement.appendChild(usernameElement);
+      messageElement.appendChild(contentElement);
+      messageElement.appendChild(timestampElement);
+      messagesDiv.appendChild(messageElement);
 
-        // Auto-scroll
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      }
+      // Auto-scroll
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
 
-      // Fetch chat history
-      async function fetchChatHistory() {
-        try {
-          const response = await fetch('/api/chat-history'); // Replace with your actual API endpoint
-          if (!response.ok) throw new Error("Failed to fetch chat history");
+    // Fetch chat history
+    async function fetchChatHistory() {
+      try {
+        const response = await fetch('/api/chat-history'); // Replace with your actual API endpoint
+        if (!response.ok) throw new Error("Failed to fetch chat history");
 
-          const chatHistory = await response.json();
-          chatHistory.forEach((message) => {
-            appendMessage(message, message.user === username);
-          });
-        } catch (error) {
-          console.error("Error loading chat history:", error);
-        }
-      }
-
-      // Load chat history
-      fetchChatHistory();
-
-      // Handle AI commands
-      function handleAICommands(input) {
-        const timestamp = Date.now();
-        if (input.startsWith('.ai')) {
-          socket.emit('ai_command', { user: username, command: input, timestamp });
-          appendMessage({ user: username, message: `Processing AI command: ${input}`, timestamp }, true);
-        } else if (input.startsWith('.play')) {
-          socket.emit('play_command', { user: username, command: input, timestamp });
-          appendMessage({ user: username, message: `Searching for music: ${input}`, timestamp }, true);
-        } else if (input.startsWith('.video')) {
-          socket.emit('video_command', { user: username, command: input, timestamp });
-          appendMessage({ user: username, message: `Fetching video: ${input}`, timestamp }, true);
-        } else if (input.startsWith('.image')) {
-          socket.emit('image_command', { user: username, command: input, timestamp });
-          appendMessage({ user: username, message: `Generating image: ${input}`, timestamp }, true);
-        } else if (input.startsWith('.lyrics')) {
-          socket.emit('lyrics_command', { user: username, command: input, timestamp });
-          appendMessage({ user: username, message: `Fetching lyrics for: ${input}`, timestamp }, true);
-        } else {
-          return false; // Not an AI command
-        }
-        return true; // Handled as an AI command
-      }
-
-      // Send message
-      sendBtn.addEventListener("click", () => {
-        const message = messageInput.value.trim();
-        if (message) {
-          if (!handleAICommands(message)) {
-            const timestamp = Date.now();
-            socket.emit("message", { user: username, message, timestamp });
-            appendMessage({ user: username, message, timestamp }, true);
-          }
-          messageInput.value = "";
-        }
-      });
-
-      messageInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendBtn.click();
-      });
-
-      // Handle voice recording
-      let mediaRecorder = null;
-      let audioChunks = [];
-
-      voiceBtn.addEventListener("mousedown", () => {
-        navigator.mediaDevices.getUserMedia({ audio: true })
-          .then((stream) => {
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.start();
-            audioChunks = [];
-
-            mediaRecorder.addEventListener("dataavailable", (event) => {
-              audioChunks.push(event.data);
-            });
-
-            mediaRecorder.addEventListener("stop", () => {
-              const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-              const audioUrl = URL.createObjectURL(audioBlob);
-              const timestamp = Date.now();
-
-              socket.emit("message", { 
-                user: username, 
-                message: `<audio controls src="${audioUrl}"></audio>`, 
-                timestamp 
-              });
-              appendMessage({ 
-                user: username, 
-                message: `<audio controls src="${audioUrl}"></audio>`, 
-                timestamp 
-              }, true);
-            });
-          })
-          .catch((error) => {
-            alert("Error accessing microphone!");
-            console.error(error);
-          });
-      });
-
-      voiceBtn.addEventListener("mouseup", () => {
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-          mediaRecorder.stop();
-        }
-      });
-
-      // Handle image upload
-      attachBtn.addEventListener("click", () => {
-        imageUpload.click();
-      });
-
-      imageUpload.addEventListener("change", () => {
-        const file = imageUpload.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const timestamp = Date.now();
-            socket.emit("message", { user: username, message: `<img src="${reader.result}" alt="Uploaded Image">`, timestamp });
-            appendMessage({ user: username, message: `<img src="${reader.result}" alt="Uploaded Image">`, timestamp }, true);
-          };
-          reader.readAsDataURL(file);
-        }
-      });
-
-      // Emoji Picker
-      const emojis = ["😀", "😂", "😍", "😎", "😭", "😡", "👍", "👎", "🎉", "🔥", "❤️"];
-      emojis.forEach((emoji) => {
-        const span = document.createElement("span");
-        span.textContent = emoji;
-        span.addEventListener("click", () => {
-          messageInput.value += emoji;
-          emojiPicker.style.display = "none";
+        const chatHistory = await response.json();
+        chatHistory.forEach((message) => {
+          appendMessage(message, message.user === username);
         });
-        emojiPicker.appendChild(span);
-      });
+      } catch (error) {
+        console.error("Error loading chat history:", error);
+      }
+    }
 
-      const emojiBtn = document.getElementById("emojiBtn");
-      emojiBtn.addEventListener("click", () => {
-        emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
-      });
+    // Load chat history
+    fetchChatHistory();
 
-      // Toggle menu
-      const menuToggle = document.getElementById("menuToggle");
-      const menuItems = document.getElementById("menuItems");
-      menuToggle.addEventListener("click", () => {
-        menuItems.classList.toggle("show");
-      });
+    // Handle AI commands
+    function handleAICommands(input) {
+      const timestamp = Date.now();
+      if (input.startsWith('.ai')) {
+        socket.emit('ai_command', { user: username, command: input, timestamp });
+        appendMessage({ user: username, message: `Processing AI command: ${input}`, timestamp }, true);
+      } else if (input.startsWith('.play')) {
+        socket.emit('play_command', { user: username, command: input, timestamp });
+        appendMessage({ user: username, message: `Searching for music: ${input}`, timestamp }, true);
+      } else if (input.startsWith('.video')) {
+        socket.emit('video_command', { user: username, command: input, timestamp });
+        appendMessage({ user: username, message: `Fetching video: ${input}`, timestamp }, true);
+      } else if (input.startsWith('.image')) {
+        socket.emit('image_command', { user: username, command: input, timestamp });
+        appendMessage({ user: username, message: `Generating image: ${input}`, timestamp }, true);
+      } else if (input.startsWith('.lyrics')) {
+        socket.emit('lyrics_command', { user: username, command: input, timestamp });
+        appendMessage({ user: username, message: `Fetching lyrics for: ${input}`, timestamp }, true);
+      } else {
+        return false; // Not an AI command
+      }
+      return true; // Handled as an AI command
+    }
 
-      // Listen for incoming messages
-      socket.on("message", (data) => appendMessage(data, false));
+    // Send message
+    sendBtn.addEventListener("click", () => {
+      const message = messageInput.value.trim();
+      if (message) {
+        if (!handleAICommands(message)) {
+          const timestamp = Date.now();
+          socket.emit("message", { user: username, message, timestamp });
+          appendMessage({ user: username, message, timestamp }, true);
+        }
+        messageInput.value = "";
+      }
     });
-  </script>
+
+    messageInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendBtn.click();
+    });
+
+    // Handle voice recording
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    voiceBtn.addEventListener("mousedown", () => {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.start();
+          audioChunks = [];
+
+          mediaRecorder.addEventListener("dataavailable", (event) => {
+            audioChunks.push(event.data);
+          });
+
+          mediaRecorder.addEventListener("stop", () => {
+            const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const timestamp = Date.now();
+
+            socket.emit("message", { 
+              user: username, 
+              message: `<audio controls src="${audioUrl}"></audio>`, 
+              timestamp 
+            });
+            appendMessage({ 
+              user: username, 
+              message: `<audio controls src="${audioUrl}"></audio>`, 
+              timestamp 
+            }, true);
+          });
+        })
+        .catch((error) => {
+          alert("Error accessing microphone!");
+          console.error(error);
+        });
+    });
+
+    voiceBtn.addEventListener("mouseup", () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    });
+
+    // Handle image upload
+    attachBtn.addEventListener("click", () => {
+      imageUpload.click();
+    });
+
+    imageUpload.addEventListener("change", () => {
+      const file = imageUpload.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const timestamp = Date.now();
+          socket.emit("message", { user: username, message: `<img src="${reader.result}" alt="Uploaded Image">`, timestamp });
+          appendMessage({ user: username, message: `<img src="${reader.result}" alt="Uploaded Image">`, timestamp }, true);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Emoji Picker
+    const emojis = ["😀", "😂", "😍", "😎", "😭", "😡", "👍", "👎", "🎉", "🔥", "❤️"];
+    emojis.forEach((emoji) => {
+      const span = document.createElement("span");
+      span.textContent = emoji;
+      span.addEventListener("click", () => {
+        messageInput.value += emoji;
+        emojiPicker.style.display = "none";
+      });
+      emojiPicker.appendChild(span);
+    });
+
+    const emojiBtn = document.getElementById("emojiBtn");
+    emojiBtn.addEventListener("click", () => {
+      emojiPicker.style.display = emojiPicker.style.display === "block" ? "none" : "block";
+    });
+
+    // Toggle menu
+    const menuToggle = document.getElementById("menuToggle");
+    const menuItems = document.getElementById("menuItems");
+    menuToggle.addEventListener("click", () => {
+      menuItems.classList.toggle("show");
+    });
+
+    // Listen for incoming messages
+    socket.on("message", (data) => appendMessage(data, false));
+  });
+</script>
 </body>
 </html>
