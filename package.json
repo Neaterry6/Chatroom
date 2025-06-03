@@ -1,26 +1,40 @@
-
 {
-  "name": "chat-ai-server",
+  "name": "ai-chatroom-server",
   "version": "1.0.0",
-  "description": "Express + Socket.io chat server with AI commands and session login",
-  "main": "server.js",
+  "description": "An AI-powered chatroom server with user authentication, YouTube music/video fetching, and image generation.",
+  "main": "server.mjs",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.mjs",
+    "dev": "nodemon server.mjs"
   },
-  "keywords": [
-    "chat",
-    "express",
-    "socket.io",
-    "AI",
-    "session"
-  ],
-  "author": "Your Name",
+  "author": "heisbroken",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.8",
-    "express": "^4.18.2",
+    "express": "^4.19.2",
     "express-session": "^1.17.3",
-    "socket.io": "^4.7.2"
+    "fs-extra": "^11.2.0",
+    "path": "^0.12.7",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "keywords": [
+    "chatroom",
+    "AI",
+    "express",
+    "socket.io",
+    "youtube",
+    "image-generation",
+    "heisbroken"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heisbroken/ai-chatroom-server"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
