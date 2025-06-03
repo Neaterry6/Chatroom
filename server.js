@@ -47,7 +47,7 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'replace_with_a_strong_secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, secure: false }
+  cookie: { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, secure: false },
 });
 app.use(sessionMiddleware);
 
@@ -146,22 +146,25 @@ io.on('connection', (socket) => {
   socket.emit('chatHistory', chatHistory);
 
   socket.on('message', async (data) => {
-    let message = data.message.trim();
+    const message = data.message.trim();
 
     // AI Command
     if (message.toLowerCase().startsWith('.ai')) {
       try {
         const question = message.substring(3).trim();
         if (!question) {
-          socket.emit('message', { user: 'System', message: 'Please provide a question after ".ai".' });
+          socket.emit('message', { user: 'System', message: 'Please provide a question after ".ai".', timestamp: Date.now() });
           return;
         }
 
         const response = await axios.get(`https://kaiz-apis.gleeze.com/api/gpt-4.1?ask=${encodeURIComponent(question)}&uid=1268&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea`);
-        socket.emit('message', { user: 'Michiko AI', message: response.data.response });
+        const aiResponse = { user: 'Michiko AI', message: response.data.response, timestamp: Date.now() };
+
+        chatHistory.push(aiResponse);
+        io.emit('message', aiResponse);
       } catch (error) {
         console.error('AI error:', error);
-        socket.emit('message', { user: 'System', message: 'AI service is temporarily unavailable.' });
+        socket.emit('message', { user: 'System', message: 'AI service is temporarily unavailable.', timestamp: Date.now() });
       }
       return;
     }
@@ -171,22 +174,25 @@ io.on('connection', (socket) => {
       try {
         const song = message.substring(5).trim();
         if (!song) {
-          socket.emit('message', { user: 'System', message: 'Please provide a song name after ".play".' });
+          socket.emit('message', { user: 'System', message: 'Please provide a song name after ".play".', timestamp: Date.now() });
           return;
         }
 
         const searchResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytsearch?q=${encodeURIComponent(song)}`);
         const songUrl = searchResponse.data.results[0]?.url;
         if (!songUrl) {
-          socket.emit('message', { user: 'System', message: 'Song not found.' });
+          socket.emit('message', { user: 'System', message: 'Song not found.', timestamp: Date.now() });
           return;
         }
 
         const downloadResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytdown-mp3?url=${encodeURIComponent(songUrl)}`);
-        socket.emit('message', { user: 'Michiko AI', message: `Download your song here: ${downloadResponse.data.download}` });
+        const playResponse = { user: 'Michiko AI', message: `Download your song here: ${downloadResponse.data.download}`, timestamp: Date.now() };
+
+        chatHistory.push(playResponse);
+        io.emit('message', playResponse);
       } catch (error) {
         console.error('Play command error:', error);
-        socket.emit('message', { user: 'System', message: 'Unable to process your request. Try again later.' });
+        socket.emit('message', { user: 'System', message: 'Unable to process your request. Try again later.', timestamp: Date.now() });
       }
       return;
     }
@@ -196,58 +202,67 @@ io.on('connection', (socket) => {
       try {
         const videoQuery = message.substring(6).trim();
         if (!videoQuery) {
-          socket.emit('message', { user: 'System', message: 'Please provide a video name after ".video".' });
+          socket.emit('message', { user: 'System', message: 'Please provide a video name after ".video".', timestamp: Date.now() });
           return;
         }
 
         const searchResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytsearch?q=${encodeURIComponent(videoQuery)}`);
         const videoUrl = searchResponse.data.results[0]?.url;
         if (!videoUrl) {
-          socket.emit('message', { user: 'System', message: 'Video not found.' });
+          socket.emit('message', { user: 'System', message: 'Video not found.', timestamp: Date.now() });
           return;
         }
 
         const downloadResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/ytmp4?url=${encodeURIComponent(videoUrl)}`);
-        socket.emit('message', { user: 'Michiko AI', message: `Download your video here: ${downloadResponse.data.download}` });
+        const videoResponse = { user: 'Michiko AI', message: `Download your video here: ${downloadResponse.data.download}`, timestamp: Date.now() };
+
+        chatHistory.push(videoResponse);
+        io.emit('message', videoResponse);
       } catch (error) {
         console.error('Video command error:', error);
-        socket.emit('message', { user: 'System', message: 'Unable to process your request. Try again later.' });
+        socket.emit('message', { user: 'System', message: 'Unable to process your request. Try again later.', timestamp: Date.now() });
       }
       return;
     }
 
-    // Image Generation
+    // Image Generation Command
     if (message.toLowerCase().startsWith('.image')) {
       try {
         const prompt = message.substring(6).trim();
         if (!prompt) {
-          socket.emit('message', { user: 'System', message: 'Please provide a prompt after ".image".' });
+          socket.emit('message', { user: 'System', message: 'Please provide a prompt after ".image".', timestamp: Date.now() });
           return;
         }
 
         const response = await axios.get(`https://smfahim.xyz/creartai?prompt=${encodeURIComponent(prompt)}`);
-        socket.emit('message', { user: 'Michiko AI', message: `Here is your generated image: ${response.data.url}` });
+        const imageResponse = { user: 'Michiko AI', message: `Here is your generated image: ${response.data.url}`, timestamp: Date.now() };
+
+        chatHistory.push(imageResponse);
+        io.emit('message', imageResponse);
       } catch (error) {
         console.error('Image generation error:', error);
-        socket.emit('message', { user: 'System', message: 'Unable to generate image at this time.' });
+        socket.emit('message', { user: 'System', message: 'Unable to generate image at this time.', timestamp: Date.now() });
       }
       return;
     }
 
-    // Lyrics Generation
+    // Lyrics Command
     if (message.toLowerCase().startsWith('.lyrics')) {
       try {
         const songTitle = message.substring(7).trim();
         if (!songTitle) {
-          socket.emit('message', { user: 'System', message: 'Please provide a song title after ".lyrics".' });
+          socket.emit('message', { user: 'System', message: 'Please provide a song title after ".lyrics".', timestamp: Date.now() });
           return;
         }
 
         const response = await axios.get(`https://kaiz-apis.gleeze.com/api/shazam-lyrics?title=${encodeURIComponent(songTitle)}&apikey=a0ebe80e-bf1a-4dbf-8d36-6935b1bfa5ea`);
-        socket.emit('message', { user: 'Michiko AI', message: response.data.lyrics || 'Lyrics not found.' });
+        const lyricsResponse = { user: 'Michiko AI', message: response.data.lyrics || 'Lyrics not found.', timestamp: Date.now() };
+
+        chatHistory.push(lyricsResponse);
+        io.emit('message', lyricsResponse);
       } catch (error) {
         console.error('Lyrics generation error:', error);
-        socket.emit('message', { user: 'System', message: 'Unable to fetch lyrics at this time.' });
+        socket.emit('message', { user: 'System', message: 'Unable to fetch lyrics at this time.', timestamp: Date.now() });
       }
       return;
     }
@@ -256,8 +271,7 @@ io.on('connection', (socket) => {
     const chatMsg = {
       user: username,
       message,
-      replyTo: data.replyTo || null,
-      reactions: []
+      timestamp: Date.now(),
     };
 
     chatHistory.push(chatMsg);
