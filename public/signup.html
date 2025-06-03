@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sign Up</title>
   <style>
+    /* Your existing styles... plus new styles below */
+
     :root {
       --blue: #007bff;
       --black: #121212;
@@ -43,6 +45,7 @@
       width: 320px;
       text-align: center;
       transition: background-color var(--transition-time), box-shadow var(--transition-time);
+      position: relative;
     }
 
     h2 {
@@ -63,7 +66,7 @@
       color: var(--input-text-dark);
       border: none;
       padding: 12px 15px;
-      margin-bottom: 20px;
+      margin-bottom: 5px;
       font-size: 1rem;
       border-radius: var(--border-radius);
       box-shadow: inset 0 0 5px #004080;
@@ -85,6 +88,7 @@
       border: none;
       color: white;
       padding: 12px 0;
+      margin-top: 20px;
       margin-bottom: 15px;
       font-weight: 600;
       font-size: 1rem;
@@ -94,7 +98,12 @@
       transition: background-color var(--transition-time), box-shadow var(--transition-time);
     }
 
-    button:hover {
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
       background-color: var(--btn-hover-bg);
       box-shadow: 0 8px 20px rgba(0, 86, 179, 0.7);
     }
@@ -164,6 +173,21 @@
       text-decoration: underline;
     }
 
+    .error-message {
+      color: #ff6b6b;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      text-align: left;
+      min-height: 18px;
+    }
+
+    .success-message {
+      color: #4caf50;
+      font-weight: 600;
+      margin-bottom: 15px;
+      font-size: 1rem;
+    }
+
     body.light {
       background-color: var(--light-bg);
       color: var(--light-text);
@@ -211,11 +235,22 @@
 
     <h2>Sign Up</h2>
 
-    <form id="signupForm" action="/signup" method="POST">
+    <form id="signupForm" action="/signup" method="POST" novalidate>
       <input type="text" name="username" placeholder="Username" required autocomplete="username" />
+      <div id="usernameError" class="error-message"></div>
+
       <input type="email" name="email" placeholder="Email" required autocomplete="email" />
+      <div id="emailError" class="error-message"></div>
+
       <input type="password" name="password" placeholder="Password" required autocomplete="new-password" />
-      <button type="submit">Create Account</button>
+      <div id="passwordError" class="error-message"></div>
+
+      <input type="password" name="confirmPassword" placeholder="Confirm Password" required autocomplete="new-password" />
+      <div id="confirmPasswordError" class="error-message"></div>
+
+      <button type="submit" id="submitBtn">Create Account</button>
+
+      <div id="formSuccess" class="success-message" style="display:none;"></div>
     </form>
 
     <div class="login-link">
@@ -226,6 +261,7 @@
   <script>
     const modeToggle = document.getElementById('modeToggle');
 
+    // Set initial mode from localStorage
     if (localStorage.getItem('mode') === 'light') {
       document.body.classList.add('light');
       modeToggle.checked = true;
@@ -241,24 +277,91 @@
       }
     });
 
-    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    const form = document.getElementById('signupForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Error elements
+    const usernameError = document.getElementById('usernameError');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    const confirmPasswordError = document.getElementById('confirmPasswordError');
+    const formSuccess = document.getElementById('formSuccess');
+
+    // Basic email regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function clearErrors() {
+      usernameError.textContent = '';
+      emailError.textContent = '';
+      passwordError.textContent = '';
+      confirmPasswordError.textContent = '';
+      formSuccess.style.display = 'none';
+      formSuccess.textContent = '';
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
-      const data = new FormData(form);
+      clearErrors();
+
+      const formData = new FormData(form);
+      const username = formData.get('username').trim();
+      const email = formData.get('email').trim();
+      const password = formData.get('password');
+      const confirmPassword = formData.get('confirmPassword');
+
+      let valid = true;
+
+      if (username.length < 3) {
+        usernameError.textContent = 'Username must be at least 3 characters.';
+        valid = false;
+      }
+
+      if (!emailRegex.test(email)) {
+        emailError.textContent = 'Please enter a valid email.';
+        valid = false;
+      }
+
+      if (password.length < 6) {
+        passwordError.textContent = 'Password must be at least 6 characters.';
+        valid = false;
+      }
+
+      if (confirmPassword !== password) {
+        confirmPasswordError.textContent = 'Passwords do not match.';
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      // Disable submit button and show loading text
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
 
       try {
         const response = await fetch(form.action, {
           method: form.method,
-          body: data
+          body: formData,
         });
 
         if (response.ok) {
-          window.location.href = '/dashboard.html';
+          formSuccess.style.display = 'block';
+          formSuccess.textContent = 'Account created successfully! Redirecting...';
+
+          // Small delay before redirect
+          setTimeout(() => {
+            window.location.href = '/dashboard.html';
+          }, 1500);
         } else {
-          alert('Signup failed. Try a different username or email.');
+          const result = await response.json();
+          // Display server error message or fallback
+          alert(result.message || 'Signup failed. Try a different username or email.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
         }
       } catch (error) {
         alert('Error: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
       }
     });
   </script>
