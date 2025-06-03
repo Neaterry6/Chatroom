@@ -127,6 +127,7 @@
       }
 
       try {
+        // Send login request to the server
         const response = await fetch('/login', {
           method: 'POST',
           headers: {
@@ -138,13 +139,27 @@
         const result = await response.json();
 
         if (result.success) {
+          // Save the username in localStorage for session tracking
+          localStorage.setItem('username', username);
+          console.log('Login successful. Username saved to localStorage.');
+
           // Redirect to chatroom after successful login
           window.location.href = '/chatroom.html';
         } else {
           loginMessage.textContent = result.message || "Invalid credentials.";
         }
       } catch (err) {
-        loginMessage.textContent = "Unable to reach server. Try again later.";
+        loginMessage.textContent = "Unable to reach the server. Please try again later.";
+        console.error('Login error:', err);
+      }
+    });
+
+    // Check if already logged in
+    window.addEventListener('load', () => {
+      const storedUsername = localStorage.getItem('username');
+      if (storedUsername) {
+        console.log('User already logged in. Redirecting to chatroom...');
+        window.location.href = '/chatroom.html';
       }
     });
   </script>
