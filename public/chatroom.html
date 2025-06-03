@@ -1,311 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StreamMe.id Chatroom</title>
-<style>
-  /* Basic Reset */
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    overflow: hidden;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-
-  /* Theme Variables */
-  :root {
-    --bg-color: #0a0a0a;
-    --text-color: #ffffff;
-    --nav-bg: #111;
-    --input-bg: #222;
-    --msg-bg: #1a1a1a;
-    --btn-bg: #3498db;
-    --accent-color: #ff0055;
-  }
-
-  body.light-mode {
-    --bg-color: #f5f5f5;
-    --text-color: #222;
-    --nav-bg: #ddd;
-    --input-bg: #fff;
-    --msg-bg: #eee;
-    --btn-bg: #3498db;
-  }
-
-  /* Glitching Text for Loading Screen */
-  #loadingScreen {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-color);
-    z-index: 1000;
-  }
-
-  .glitch {
-    font-size: 3rem;
-    font-family: 'Courier New', Courier, monospace;
-    color: var(--text-color);
-    position: relative;
-    text-transform: uppercase;
-    animation: glitch 2s infinite;
-    user-select: none;
-  }
-
-  .glitch::before,
-  .glitch::after {
-    content: attr(data-text);
-    position: absolute;
-    left: 0;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .glitch::before {
-    left: 2px;
-    text-shadow: -2px 0 red;
-    clip: rect(0, 900px, 0, 0);
-    animation: glitchTop 1s infinite linear alternate-reverse;
-  }
-
-  .glitch::after {
-    left: -2px;
-    text-shadow: -2px 0 blue;
-    clip: rect(0, 900px, 0, 0);
-    animation: glitchBottom 1s infinite linear alternate-reverse;
-  }
-
-  @keyframes glitch {
-    2% {
-      transform: translate(1px, 0);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamMe.Id</title>
+  <style>
+    /* Basic Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    4% {
-      transform: translate(-1px, 0);
-    }
-    6% {
-      transform: translate(1px, 1px);
-    }
-    8% {
-      transform: translate(-1px, -1px);
-    }
-    10% {
-      transform: translate(0, 0);
-    }
-  }
 
-  @keyframes glitchTop {
-    0% {
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: #0a0a0a;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Glitching Effect Styling */
+    .glitch-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .glitch {
+      font-size: 5rem;
+      font-weight: bold;
+      color: #ffffff;
+      position: relative;
+      text-transform: uppercase;
+      animation: glitch 1.5s infinite;
+      user-select: none;
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      left: 0;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .glitch::before {
+      text-shadow: -2px 0 red;
       clip: rect(0, 900px, 0, 0);
+      animation: glitchTop 1.5s infinite linear alternate-reverse;
     }
-    10% {
-      clip: rect(0, 900px, 30px, 0);
-    }
-    20% {
+
+    .glitch::after {
+      text-shadow: -2px 0 blue;
       clip: rect(0, 900px, 0, 0);
+      animation: glitchBottom 1.5s infinite linear alternate-reverse;
     }
-    30% {
-      clip: rect(5px, 900px, 40px, 0);
+
+    @keyframes glitch {
+      0%, 100% {
+        transform: translate(0, 0);
+      }
+      20% {
+        transform: translate(-2px, 2px);
+      }
+      40% {
+        transform: translate(2px, -2px);
+      }
+      60% {
+        transform: translate(-2px, -2px);
+      }
+      80% {
+        transform: translate(2px, 2px);
+      }
     }
-    100% {
-      clip: rect(0, 900px, 0, 0);
+
+    @keyframes glitchTop {
+      0% {
+        clip: rect(0, 900px, 0, 0);
+      }
+      10% {
+        clip: rect(0, 900px, 30px, 0);
+      }
+      20% {
+        clip: rect(0, 900px, 0, 0);
+      }
+      30% {
+        clip: rect(5px, 900px, 40px, 0);
+      }
+      100% {
+        clip: rect(0, 900px, 0, 0);
+      }
     }
-  }
 
-  @keyframes glitchBottom {
-    0% {
-      clip: rect(0, 900px, 0, 0);
+    @keyframes glitchBottom {
+      0% {
+        clip: rect(0, 900px, 0, 0);
+      }
+      10% {
+        clip: rect(20px, 900px, 60px, 0);
+      }
+      20% {
+        clip: rect(0, 900px, 0, 0);
+      }
+      30% {
+        clip: rect(40px, 900px, 80px, 0);
+      }
+      100% {
+        clip: rect(0, 900px, 0, 0);
+      }
     }
-    10% {
-      clip: rect(20px, 900px, 60px, 0);
+
+    /* Loader Animation */
+    .loader {
+      margin-top: 20px;
+      width: 60px;
+      height: 60px;
+      border: 8px solid #3498db;
+      border-top: 8px solid transparent;
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite;
     }
-    20% {
-      clip: rect(0, 900px, 0, 0);
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
     }
-    30% {
-      clip: rect(40px, 900px, 80px, 0);
-    }
-    100% {
-      clip: rect(0, 900px, 0, 0);
-    }
-  }
-
-  /* Loader Animation */
-  .loader {
-    width: 80px;
-    height: 80px;
-    border: 10px solid var(--btn-bg);
-    border-top: 10px solid transparent;
-    border-radius: 50%;
-    animation: spin 1.2s linear infinite;
-    margin-top: 20px;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* Navigation Bar */
-  nav.nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    background-color: var(--nav-bg);
-    color: var(--text-color);
-  }
-
-  nav.nav .title {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 1.8rem;
-    color: var(--accent-color);
-    font-weight: bold;
-  }
-
-  nav.nav .menu-btn {
-    background: none;
-    border: none;
-    font-size: 1.4rem;
-    cursor: pointer;
-    color: var(--text-color);
-  }
-
-  nav.nav .menu-items {
-    position: absolute;
-    top: 50px;
-    left: 10px;
-    background-color: var(--nav-bg);
-    border-radius: 8px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.4);
-    padding: 10px;
-    display: none; /* Menu toggles visibility */
-  }
-
-  nav.nav .menu-items.show {
-    display: block;
-  }
-
-  nav.nav .menu-items button,
-  nav.nav .menu-items a {
-    display: block;
-    padding: 10px;
-    color: var(--text-color);
-    text-decoration: none;
-    border: none;
-    background: none;
-    margin-bottom: 5px;
-    cursor: pointer;
-  }
-
-  .menu-items button:hover,
-  .menu-items a:hover {
-    color: var(--accent-color);
-  }
-
-  /* Chatroom */
-  .chat-container {
-    max-width: 800px;
-    margin: 0 auto;
-    height: calc(100vh - 60px);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .messages {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-    background-color: var(--msg-bg);
-  }
-
-  .message {
-    margin: 10px 0;
-    padding: 10px 15px;
-    background-color: var(--input-bg);
-    border-radius: 10px;
-    word-wrap: break-word;
-  }
-
-  .message strong {
-    display: block;
-    margin-bottom: 5px;
-  }
-
-  /* Input Area */
-  .input-area {
-    display: flex;
-    padding: 10px;
-    border-top: 2px solid var(--btn-bg);
-    background-color: var(--nav-bg);
-  }
-
-  input[type="text"] {
-    flex: 1;
-    padding: 10px;
-    font-size: 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--btn-bg);
-    background-color: var(--input-bg);
-    color: var(--text-color);
-  }
-
-  button {
-    margin-left: 10px;
-    padding: 10px;
-    font-size: 1.2rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background-color: var(--btn-bg);
-    color: white;
-  }
-
-  button:hover {
-    background-color: #0056b3;
-  }
-</style>
+  </style>
 </head>
 <body>
-  <!-- Loading Screen -->
-  <div id="loadingScreen">
-    <div class="glitch" data-text="StreamMe.id Chatroom">StreamMe.id Chatroom</div>
+  <!-- Glitching Text Container -->
+  <div class="glitch-container">
+    <div class="glitch" data-text="StreamMe.Id">StreamMe.Id</div>
     <div class="loader"></div>
   </div>
-
-  <!-- Navigation -->
-  <nav class="nav">
-    <div class="title">StreamMe.id</div>
-    <button class="menu-btn" id="menuToggle">☰</button>
-    <div class="menu-items" id="menuItems">
-      <a href="profile.html">👤 Profile</a>
-      <button id="darkModeToggle">🌓 Toggle Theme</button>
-      <button id="logoutBtn">🚪 Logout</button>
-    </div>
-  </nav>
-
-  <!-- Chat Container -->
-  <div class="chat-container">
-    <div id="messages" class="messages"></div>
-    <div class="input-area">
-      <button class="attach-btn" id="attachBtn">📎</button>
-      <input type="file" id="imageUpload" accept="image/*" style="display:none;">
-      <input id="messageInput" type="text" placeholder="Type a message...">
-      <button class="voice-btn" id="voiceBtn">🎤</button>
-      <button class="send-btn" id="sendBtn">➤</button>
-    </div>
-  </div>
-
-  <script>
+    
+    <script>
   document.addEventListener("DOMContentLoaded", () => {
     const username = localStorage.getItem("username") || "Anonymous";
 
@@ -327,7 +163,7 @@
     const emojiBtn = document.getElementById("emojiBtn");
     const emojiPicker = document.getElementById("emojiPicker");
     const messagesDiv = document.getElementById("messages");
-    const socket = io();
+    const socket = io(); // Connect to the WebSocket server
 
     // Load saved theme from localStorage
     if (localStorage.getItem("theme") === "light") {
@@ -355,11 +191,30 @@
 
     // Handle socket connection
     socket.on("connect", () => {
-      document.getElementById("loadingScreen").style.opacity = 0;
-      setTimeout(() => (document.getElementById("loadingScreen").style.display = "none"), 500);
+      const loadingScreen = document.getElementById("loadingScreen");
+      const chatInterface = document.getElementById("chatInterface");
+
+      console.log("Connected to server!");
+      loadingScreen.style.opacity = 0;
+      setTimeout(() => {
+        loadingScreen.style.display = "none";
+        chatInterface.style.display = "block"; // Show the chat interface
+      }, 500);
     });
 
-    // Send text message
+    // Fallback: Hide loading screen after 5 seconds if connection fails
+    setTimeout(() => {
+      const loadingScreen = document.getElementById("loadingScreen");
+      const chatInterface = document.getElementById("chatInterface");
+
+      loadingScreen.style.opacity = 0;
+      setTimeout(() => {
+        loadingScreen.style.display = "none";
+        chatInterface.style.display = "block"; // Show the chat interface
+      }, 500);
+    }, 5000);
+
+    // Send message
     sendBtn.addEventListener("click", () => {
       const message = messageInput.value.trim();
       if (message) {
