@@ -2,30 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sign Up</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signup</title>
   <style>
-    /* Your entire CSS pasted as you provided */
     :root {
       --blue: #007bff;
       --black: #121212;
       --white: #f5f5f5;
       --dark-bg: var(--black);
       --dark-text: var(--white);
-      --light-bg: var(--white);
-      --light-text: var(--black);
-      --input-bg-dark: #1e1e1e;
-      --input-bg-light: #fff;
-      --input-text-dark: #fff;
-      --input-text-light: #000;
       --btn-bg: var(--blue);
       --btn-hover-bg: #0056b3;
       --border-radius: 8px;
-      --transition-time: 0.3s;
     }
 
     body {
-      margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--dark-bg);
       color: var(--dark-text);
@@ -33,7 +24,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      transition: background-color var(--transition-time), color var(--transition-time);
+      margin: 0;
     }
 
     .auth-container {
@@ -43,14 +34,10 @@
       box-shadow: 0 0 20px rgba(0, 123, 255, 0.7);
       width: 320px;
       text-align: center;
-      transition: background-color var(--transition-time), box-shadow var(--transition-time);
-      position: relative;
     }
 
     h2 {
       margin-bottom: 24px;
-      font-weight: 700;
-      letter-spacing: 1.1px;
     }
 
     form {
@@ -58,108 +45,43 @@
       flex-direction: column;
     }
 
-    input[type="text"],
-    input[type="password"],
-    input[type="email"] {
-      background-color: var(--input-bg-dark);
-      color: var(--input-text-dark);
+    input {
+      padding: 12px;
+      margin-bottom: 15px;
       border: none;
-      padding: 12px 15px;
-      margin-bottom: 5px;
-      font-size: 1rem;
       border-radius: var(--border-radius);
-      box-shadow: inset 0 0 5px #004080;
-      transition: background-color var(--transition-time), color var(--transition-time);
+      background-color: #1e1e1e;
+      color: var(--white);
     }
 
     input::placeholder {
       color: #b0c4de;
     }
 
-    input:focus {
-      outline: none;
-      box-shadow: 0 0 8px var(--btn-bg);
-      background-color: #002244;
-    }
-
     button {
       background-color: var(--btn-bg);
       border: none;
-      color: white;
+      color: var(--white);
       padding: 12px 0;
-      margin-top: 20px;
-      margin-bottom: 15px;
-      font-weight: 600;
       font-size: 1rem;
       cursor: pointer;
       border-radius: var(--border-radius);
-      box-shadow: 0 5px 12px rgba(0, 123, 255, 0.5);
-      transition: background-color var(--transition-time), box-shadow var(--transition-time);
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    button:hover:not(:disabled) {
-      background-color: var(--btn-hover-bg);
-      box-shadow: 0 8px 20px rgba(0, 86, 179, 0.7);
-    }
-
-    .toggle-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 15px;
-    }
-
-    .toggle-label {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      font-size: 0.9rem;
-      user-select: none;
-      color: var(--dark-text);
-    }
-
-    .toggle-label input[type="checkbox"] {
-      display: none;
-    }
-
-    .slider {
-      position: relative;
-      width: 40px;
-      height: 20px;
-      background-color: #bbb;
-      border-radius: 34px;
-      margin-left: 10px;
       transition: background-color 0.3s;
     }
 
-    .slider::before {
-      content: "";
-      position: absolute;
-      height: 16px;
-      width: 16px;
-      left: 2px;
-      bottom: 2px;
-      background-color: white;
-      border-radius: 50%;
-      transition: transform 0.3s;
+    button:hover {
+      background-color: var(--btn-hover-bg);
     }
 
-    input:checked + .slider {
-      background-color: var(--btn-bg);
-    }
-
-    input:checked + .slider::before {
-      transform: translateX(20px);
+    .error-message {
+      color: #ff6b6b;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
     }
 
     .login-link {
-      margin-top: 10px;
+      margin-top: 15px;
       font-size: 0.9rem;
-      color: #a9c5ff;
     }
 
     .login-link a {
@@ -171,207 +93,60 @@
     .login-link a:hover {
       text-decoration: underline;
     }
-
-    .error-message {
-      color: #ff6b6b;
-      font-size: 0.85rem;
-      margin-bottom: 12px;
-      text-align: left;
-      min-height: 18px;
-    }
-
-    .success-message {
-      color: #4caf50;
-      font-weight: 600;
-      margin-bottom: 15px;
-      font-size: 1rem;
-    }
-
-    body.light {
-      background-color: var(--light-bg);
-      color: var(--light-text);
-    }
-
-    body.light .auth-container {
-      background: linear-gradient(135deg, #cce0ff, #e6f0ff);
-      color: var(--light-text);
-    }
-
-    body.light input[type="text"],
-    body.light input[type="password"],
-    body.light input[type="email"] {
-      background-color: var(--input-bg-light);
-      color: var(--input-text-light);
-      box-shadow: inset 0 0 5px #aaccee;
-    }
-
-    body.light input:focus {
-      background-color: #dbe9ff;
-    }
-
-    body.light .toggle-label {
-      color: var(--light-text);
-    }
-
-    body.light .login-link {
-      color: #003366;
-    }
-
-    body.light .login-link a {
-      color: var(--btn-bg);
-    }
   </style>
 </head>
 <body>
   <div class="auth-container">
-    <div class="toggle-container">
-      <label class="toggle-label" for="modeToggle">
-        Light Mode
-        <input type="checkbox" id="modeToggle" />
-        <span class="slider"></span>
-      </label>
-    </div>
+    <h2>Signup</h2>
 
-    <h2>Sign Up</h2>
-
-    <form id="signupForm" novalidate>
-      <input type="text" name="username" placeholder="Username" required autocomplete="username" />
-      <div id="usernameError" class="error-message"></div>
-
-      <input type="email" name="email" placeholder="Email" required autocomplete="email" />
-      <div id="emailError" class="error-message"></div>
-
-      <input type="password" name="password" placeholder="Password" required autocomplete="new-password" />
-      <div id="passwordError" class="error-message"></div>
-
-      <input type="password" name="confirmPassword" placeholder="Confirm Password" required autocomplete="new-password" />
-      <div id="confirmPasswordError" class="error-message"></div>
-
-      <button type="submit" id="submitBtn">Create Account</button>
-
-      <div id="formSuccess" class="success-message" style="display:none;"></div>
-      <div id="serverError" class="error-message"></div>
+    <form id="signupForm">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <div class="error-message" id="signupMessage"></div>
+      <button type="submit">Sign Up</button>
     </form>
 
     <div class="login-link">
-      Already have an account? <a href="login.html">Login</a>
+      Already have an account? <a href="/login">Login</a>
     </div>
   </div>
 
   <script>
-    const modeToggle = document.getElementById('modeToggle');
-    const form = document.getElementById('signupForm');
-    const submitBtn = document.getElementById('submitBtn');
+    const signupForm = document.getElementById('signupForm');
+    const signupMessage = document.getElementById('signupMessage');
 
-    const usernameError = document.getElementById('usernameError');
-    const emailError = document.getElementById('emailError');
-    const passwordError = document.getElementById('passwordError');
-    const confirmPasswordError = document.getElementById('confirmPasswordError');
-    const formSuccess = document.getElementById('formSuccess');
-    const serverError = document.getElementById('serverError');
-
-    // Set initial mode from localStorage
-    if (localStorage.getItem('mode') === 'light') {
-      document.body.classList.add('light');
-      modeToggle.checked = true;
-    }
-
-    modeToggle.addEventListener('change', () => {
-      if (modeToggle.checked) {
-        document.body.classList.add('light');
-        localStorage.setItem('mode', 'light');
-      } else {
-        document.body.classList.remove('light');
-        localStorage.setItem('mode', 'dark');
-      }
-    });
-
-    // Simple but effective email regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    function clearErrors() {
-      usernameError.textContent = '';
-      emailError.textContent = '';
-      passwordError.textContent = '';
-      confirmPasswordError.textContent = '';
-      serverError.textContent = '';
-      formSuccess.style.display = 'none';
-      formSuccess.textContent = '';
-    }
-
-    form.addEventListener('submit', async (e) => {
+    signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      clearErrors();
 
-      const username = form.username.value.trim();
-      const email = form.email.value.trim();
-      const password = form.password.value;
-      const confirmPassword = form.confirmPassword.value;
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
 
-      let hasError = false;
-
-      if (!username) {
-        usernameError.textContent = 'Username is required.';
-        hasError = true;
-      } else if (username.length < 3) {
-        usernameError.textContent = 'Username must be at least 3 characters.';
-        hasError = true;
+      if (!username || !email || !password) {
+        signupMessage.textContent = "All fields are required.";
+        return;
       }
-
-      if (!email) {
-        emailError.textContent = 'Email is required.';
-        hasError = true;
-      } else if (!emailRegex.test(email)) {
-        emailError.textContent = 'Email is invalid.';
-        hasError = true;
-      }
-
-      if (!password) {
-        passwordError.textContent = 'Password is required.';
-        hasError = true;
-      } else if (password.length < 8) {
-        passwordError.textContent = 'Password must be at least 8 characters.';
-        hasError = true;
-      }
-
-      if (!confirmPassword) {
-        confirmPasswordError.textContent = 'Please confirm your password.';
-        hasError = true;
-      } else if (password !== confirmPassword) {
-        confirmPasswordError.textContent = 'Passwords do not match.';
-        hasError = true;
-      }
-
-      if (hasError) return;
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating...';
 
       try {
-        const res = await fetch('/signup', {
+        const response = await fetch('/signup', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({ username, email, password })
         });
 
-        if (!res.ok) {
-          const data = await res.json();
-          serverError.textContent = data.message || 'Network error. Please try again later.';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
-          return;
+        const result = await response.json();
+
+        if (result.success) {
+          // Redirect to login page after successful signup
+          window.location.href = '/login';
+        } else {
+          signupMessage.textContent = result.message || "Signup failed. Try again.";
         }
-
-        const data = await res.json();
-        formSuccess.style.display = 'block';
-        formSuccess.textContent = data.message || 'Account created successfully!';
-
-        form.reset();
-      } catch (error) {
-        serverError.textContent = 'Network error. Please try again later.';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Account';
+      } catch (err) {
+        signupMessage.textContent = "Unable to connect to server. Try again later.";
       }
     });
   </script>
