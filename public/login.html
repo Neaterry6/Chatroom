@@ -43,6 +43,7 @@
       width: 320px;
       text-align: center;
       transition: background-color var(--transition-time), box-shadow var(--transition-time);
+      position: relative;
     }
 
     h2 {
@@ -54,6 +55,7 @@
     form {
       display: flex;
       flex-direction: column;
+      text-align: left;
     }
 
     input[type="text"],
@@ -62,11 +64,13 @@
       color: var(--input-text-dark);
       border: none;
       padding: 12px 15px;
-      margin-bottom: 20px;
+      margin-bottom: 5px;
       font-size: 1rem;
       border-radius: var(--border-radius);
       box-shadow: inset 0 0 5px #004080;
       transition: background-color var(--transition-time), color var(--transition-time);
+      width: 100%;
+      box-sizing: border-box;
     }
 
     input::placeholder {
@@ -79,21 +83,42 @@
       background-color: #002244;
     }
 
+    label.remember {
+      display: flex;
+      align-items: center;
+      font-size: 0.9rem;
+      margin: 8px 0 15px 0;
+      color: var(--dark-text);
+      user-select: none;
+    }
+
+    label.remember input {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
     button {
       background-color: var(--btn-bg);
       border: none;
       color: white;
       padding: 12px 0;
-      margin-bottom: 15px;
+      margin-top: 10px;
       font-weight: 600;
       font-size: 1rem;
       cursor: pointer;
       border-radius: var(--border-radius);
       box-shadow: 0 5px 12px rgba(0, 123, 255, 0.5);
       transition: background-color var(--transition-time), box-shadow var(--transition-time);
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    button:hover {
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
       background-color: var(--btn-hover-bg);
       box-shadow: 0 8px 20px rgba(0, 86, 179, 0.7);
     }
@@ -148,9 +173,10 @@
     }
 
     .signup-link {
-      margin-top: 10px;
+      margin-top: 15px;
       font-size: 0.9rem;
       color: #a9c5ff;
+      text-align: center;
     }
 
     .signup-link a {
@@ -161,6 +187,21 @@
 
     .signup-link a:hover {
       text-decoration: underline;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      min-height: 18px;
+    }
+
+    .success-message {
+      color: #4caf50;
+      font-weight: 600;
+      margin-bottom: 15px;
+      font-size: 1rem;
+      text-align: center;
     }
 
     body.light {
@@ -188,6 +229,10 @@
       color: var(--light-text);
     }
 
+    body.light label.remember {
+      color: var(--light-text);
+    }
+
     body.light .signup-link {
       color: #003366;
     }
@@ -209,20 +254,43 @@
 
     <h2>Login</h2>
 
-    <form id="loginForm" action="/login" method="POST">
-      <input type="text" name="username" placeholder="Username" required autocomplete="username" />
-      <input type="password" name="password" placeholder="Password" required autocomplete="current-password" />
-      <button type="submit">Login</button>
+    <form id="loginForm" action="/login" method="POST" novalidate>
+      <input
+        type="text"
+        name="username"
+        placeholder="Username or Email"
+        required
+        autocomplete="username"
+      />
+      <div id="usernameError" class="error-message"></div>
+
+      <input
+        type="password"
+        name="password"
+        placeholder="Password"
+        required
+        autocomplete="current-password"
+      />
+      <div id="passwordError" class="error-message"></div>
+
+      <label class="remember" for="rememberMe">
+        <input type="checkbox" id="rememberMe" name="remember" />
+        Remember me
+      </label>
+
+      <button type="submit" id="submitBtn">Log In</button>
+      <div id="formSuccess" class="success-message" style="display:none;"></div>
     </form>
 
     <div class="signup-link">
-      Don't have an account? <a href="signup.html">Sign up</a>
+      Don't have an account? <a href="signup.html">Sign Up</a>
     </div>
   </div>
 
   <script>
     const modeToggle = document.getElementById('modeToggle');
 
+    // Set initial mode from localStorage
     if (localStorage.getItem('mode') === 'light') {
       document.body.classList.add('light');
       modeToggle.checked = true;
@@ -238,24 +306,69 @@
       }
     });
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    const form = document.getElementById('loginForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Error elements
+    const usernameError = document.getElementById('usernameError');
+    const passwordError = document.getElementById('passwordError');
+    const formSuccess = document.getElementById('formSuccess');
+
+    function clearErrors() {
+      usernameError.textContent = '';
+      passwordError.textContent = '';
+      formSuccess.style.display = 'none';
+      formSuccess.textContent = '';
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const form = e.target;
-      const data = new FormData(form);
+      clearErrors();
+
+      const formData = new FormData(form);
+      const username = formData.get('username').trim();
+      const password = formData.get('password');
+
+      let valid = true;
+
+      if (username.length < 3) {
+        usernameError.textContent = 'Please enter your username or email.';
+        valid = false;
+      }
+
+      if (password.length < 6) {
+        passwordError.textContent = 'Password must be at least 6 characters.';
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Logging in...';
 
       try {
         const response = await fetch(form.action, {
           method: form.method,
-          body: data
+          body: formData,
         });
 
         if (response.ok) {
-          window.location.href = '/dashboard.html';
+          formSuccess.style.display = 'block';
+          formSuccess.textContent = 'Login successful! Redirecting...';
+
+          setTimeout(() => {
+            window.location.href = '/dashboard.html';
+          }, 1500);
         } else {
-          alert('Invalid username or password.');
+          const result = await response.json();
+          alert(result.message || 'Login failed. Check your credentials.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log In';
         }
       } catch (error) {
         alert('Error: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Log In';
       }
     });
   </script>
