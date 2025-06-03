@@ -42,7 +42,6 @@
       box-shadow: 0 0 20px rgba(0, 123, 255, 0.7);
       width: 320px;
       text-align: center;
-      transition: background-color var(--transition-time), box-shadow var(--transition-time);
       position: relative;
     }
 
@@ -89,7 +88,6 @@
       font-size: 0.9rem;
       margin: 8px 0 15px 0;
       color: var(--dark-text);
-      user-select: none;
     }
 
     label.remember input {
@@ -196,14 +194,6 @@
       min-height: 18px;
     }
 
-    .success-message {
-      color: #4caf50;
-      font-weight: 600;
-      margin-bottom: 15px;
-      font-size: 1rem;
-      text-align: center;
-    }
-
     body.light {
       background-color: var(--light-bg);
       color: var(--light-text);
@@ -211,7 +201,6 @@
 
     body.light .auth-container {
       background: linear-gradient(135deg, #cce0ff, #e6f0ff);
-      color: var(--light-text);
     }
 
     body.light input[type="text"],
@@ -225,20 +214,13 @@
       background-color: #dbe9ff;
     }
 
-    body.light .toggle-label {
-      color: var(--light-text);
-    }
-
+    body.light .toggle-label,
     body.light label.remember {
       color: var(--light-text);
     }
 
     body.light .signup-link {
       color: #003366;
-    }
-
-    body.light .signup-link a {
-      color: var(--btn-bg);
     }
   </style>
 </head>
@@ -255,8 +237,8 @@
     <h2>Login</h2>
 
     <form id="loginForm">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
+      <input type="text" id="username" placeholder="Username" required autocomplete="username" />
+      <input type="password" id="password" placeholder="Password" required autocomplete="current-password" />
       <label class="remember">
         <input type="checkbox" id="rememberMe" />
         Remember Me
@@ -271,13 +253,18 @@
   </div>
 
   <script>
-    // Light/Dark mode toggle
     const modeToggle = document.getElementById('modeToggle');
+
+    // Persist mode preference
+    modeToggle.checked = localStorage.getItem('mode') === 'light';
+    document.body.classList.toggle('light', modeToggle.checked);
+
     modeToggle.addEventListener('change', () => {
-      document.body.classList.toggle('light', modeToggle.checked);
+      const isLight = modeToggle.checked;
+      document.body.classList.toggle('light', isLight);
+      localStorage.setItem('mode', isLight ? 'light' : 'dark');
     });
 
-    // Login form submission
     const loginForm = document.getElementById('loginForm');
     const loginMessage = document.getElementById('loginMessage');
 
@@ -300,6 +287,10 @@
           body: JSON.stringify({ username, password })
         });
 
+        if (!response.ok) {
+          throw new Error("Server error");
+        }
+
         const result = await response.json();
         if (result.success) {
           window.location.href = '/chatroom.html';
@@ -307,7 +298,7 @@
           loginMessage.textContent = result.message || "Invalid credentials.";
         }
       } catch (err) {
-        loginMessage.textContent = "An error occurred. Try again later.";
+        loginMessage.textContent = "Unable to reach server. Try again later.";
       }
     });
   </script>
