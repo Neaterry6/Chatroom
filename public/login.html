@@ -3,75 +3,200 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>User Login</title>
+  <title>Login</title>
   <style>
+    :root {
+      --blue: #007bff;
+      --black: #121212;
+      --white: #f5f5f5;
+      --dark-bg: var(--black);
+      --dark-text: var(--white);
+      --light-bg: var(--white);
+      --light-text: var(--black);
+      --input-bg-dark: #1e1e1e;
+      --input-bg-light: #fff;
+      --input-text-dark: #fff;
+      --input-text-light: #000;
+      --btn-bg: var(--blue);
+      --btn-hover-bg: #0056b3;
+      --border-radius: 8px;
+      --transition-time: 0.3s;
+    }
+
+    /* Default dark mode */
     body {
-      background: #121212;
-      color: #f5f5f5;
+      margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--dark-bg);
+      color: var(--dark-text);
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      margin: 0;
+      transition: background-color var(--transition-time), color var(--transition-time);
     }
-    .login-container {
+
+    .auth-container {
       background: linear-gradient(135deg, #004080, #000000);
       padding: 30px 40px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0,123,255,0.7);
+      border-radius: var(--border-radius);
+      box-shadow: 0 0 20px rgba(0, 123, 255, 0.7);
       width: 320px;
       text-align: center;
+      transition: background-color var(--transition-time), box-shadow var(--transition-time);
     }
+
     h2 {
       margin-bottom: 24px;
       font-weight: 700;
+      letter-spacing: 1.1px;
     }
+
     form {
       display: flex;
       flex-direction: column;
     }
+
     input[type="text"],
     input[type="password"] {
-      background: #1e1e1e;
+      background-color: var(--input-bg-dark);
+      color: var(--input-text-dark);
       border: none;
       padding: 12px 15px;
       margin-bottom: 20px;
       font-size: 1rem;
-      border-radius: 8px;
-      color: #fff;
+      border-radius: var(--border-radius);
       box-shadow: inset 0 0 5px #004080;
+      transition: background-color var(--transition-time), color var(--transition-time);
     }
-    input::placeholder {
+
+    input[type="text"]::placeholder,
+    input[type="password"]::placeholder {
       color: #b0c4de;
     }
-    input:focus {
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
       outline: none;
-      background: #002244;
-      box-shadow: 0 0 8px #007bff;
+      box-shadow: 0 0 8px var(--btn-bg);
+      background-color: #002244;
     }
+
     button {
-      background: #007bff;
+      background-color: var(--btn-bg);
       border: none;
+      color: white;
       padding: 12px 0;
+      margin-bottom: 15px;
       font-weight: 600;
       font-size: 1rem;
-      color: white;
-      border-radius: 8px;
       cursor: pointer;
-      box-shadow: 0 5px 12px rgba(0,123,255,0.5);
-      transition: background-color 0.3s, box-shadow 0.3s;
+      border-radius: var(--border-radius);
+      box-shadow: 0 5px 12px rgba(0, 123, 255, 0.5);
+      transition: background-color var(--transition-time), box-shadow var(--transition-time);
     }
+
     button:hover {
-      background: #0056b3;
-      box-shadow: 0 8px 20px rgba(0,86,179,0.7);
+      background-color: var(--btn-hover-bg);
+      box-shadow: 0 8px 20px rgba(0, 86, 179, 0.7);
+    }
+
+    /* Toggle switch container */
+    .toggle-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 15px;
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      user-select: none;
+      color: var(--dark-text);
+    }
+
+    /* Hide default checkbox */
+    .toggle-label input[type="checkbox"] {
+      display: none;
+    }
+
+    /* Custom toggle switch */
+    .slider {
+      position: relative;
+      width: 40px;
+      height: 20px;
+      background-color: #bbb;
+      border-radius: 34px;
+      margin-left: 10px;
+      transition: background-color 0.3s;
+    }
+
+    .slider::before {
+      content: "";
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+
+    input:checked + .slider {
+      background-color: var(--btn-bg);
+    }
+
+    input:checked + .slider::before {
+      transform: translateX(20px);
+    }
+
+    /* LIGHT MODE STYLES */
+    body.light {
+      background-color: var(--light-bg);
+      color: var(--light-text);
+      transition: background-color var(--transition-time), color var(--transition-time);
+    }
+
+    body.light .auth-container {
+      background: linear-gradient(135deg, #cce0ff, #e6f0ff);
+      box-shadow: 0 0 20px rgba(0, 123, 255, 0.7);
+      color: var(--light-text);
+    }
+
+    body.light input[type="text"],
+    body.light input[type="password"] {
+      background-color: var(--input-bg-light);
+      color: var(--input-text-light);
+      box-shadow: inset 0 0 5px #aaccee;
+    }
+
+    body.light input[type="text"]:focus,
+    body.light input[type="password"]:focus {
+      background-color: #dbe9ff;
+      box-shadow: 0 0 8px var(--btn-bg);
+    }
+
+    body.light .toggle-label {
+      color: var(--light-text);
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <h2>User Login</h2>
-    <form id="loginForm" action="/auth/login" method="POST">
+  <div class="auth-container">
+    <div class="toggle-container">
+      <label class="toggle-label" for="modeToggle">
+        Light Mode
+        <input type="checkbox" id="modeToggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <h2>Login</h2>
+
+    <form action="/login" method="POST">
       <input type="text" name="username" placeholder="Username" required autocomplete="username" />
       <input type="password" name="password" placeholder="Password" required autocomplete="current-password" />
       <button type="submit">Login</button>
@@ -79,27 +204,21 @@
   </div>
 
   <script>
-    const form = document.getElementById('loginForm');
+    const modeToggle = document.getElementById('modeToggle');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // Load stored mode from localStorage
+    if(localStorage.getItem('mode') === 'light') {
+      document.body.classList.add('light');
+      modeToggle.checked = true;
+    }
 
-      const formData = new FormData(form);
-
-      try {
-        const response = await fetch('/auth/login', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (response.ok) {
-          window.location.href = '/chatroom'; // Redirect on successful login
-        } else {
-          alert('Login failed. Please check your credentials.');
-        }
-      } catch (err) {
-        alert('An error occurred. Please try again.');
-        console.error(err);
+    modeToggle.addEventListener('change', () => {
+      if(modeToggle.checked) {
+        document.body.classList.add('light');
+        localStorage.setItem('mode', 'light');
+      } else {
+        document.body.classList.remove('light');
+        localStorage.setItem('mode', 'dark');
       }
     });
   </script>
