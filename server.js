@@ -26,7 +26,10 @@ app.use(session({
   cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// Body parser for POST form data
+// Parse JSON bodies for API requests
+app.use(express.json());
+
+// Also parse URL-encoded form data (for form submissions)
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (css, js, images, html pages)
@@ -60,29 +63,35 @@ app.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'signup.html'));
 });
 
-// Handle signup form submission
+// Handle signup form submission (expects JSON)
 app.post('/signup', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).send('Missing username or password');
+  const { username, email, password } = req.body;
 
-  if (users[username]) {
-    return res.status(409).send('Username already exists. Please choose a different one.');
+  if (!username || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Missing username, email, or password' });
   }
 
-  users[username] = password;
-  res.redirect('/login');
+  if (users[username]) {
+    return res.status(409).json({ success: false, message: 'Username already exists. Please choose a different one.' });
+  }
+
+  // Save user (in-memory)
+  users[username] = { password, email };
+
+  // Respond with success JSON
+  res.json({ success: true, message: 'Account created successfully. You can now log in.' });
 });
 
-// Handle login form submission
+// Handle login form submission (expects JSON)
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).send('Missing username or password');
+  if (!username || !password) return res.status(400).json({ success: false, message: 'Missing username or password' });
 
-  if (users[username] && users[username] === password) {
+  if (users[username] && users[username].password === password) {
     req.session.username = username;
-    return res.redirect('/chatroom.html');
+    return res.json({ success: true, message: 'Login successful' });
   } else {
-    return res.status(401).send('Invalid credentials. Please try again.');
+    return res.status(401).json({ success: false, message: 'Invalid credentials. Please try again.' });
   }
 });
 
