@@ -296,7 +296,6 @@
 </style>
 </head>
 <body>
-
   <div id="loadingScreen">
     <div class="glitch" data-text="StreamMe Chat">StreamMe Chat</div>
     <div class="loader"></div>
@@ -313,192 +312,200 @@
   </nav>
 
   <div class="chat-container">
+    <!-- Messages Section -->
     <div id="messages" class="messages" aria-live="polite" aria-relevant="additions"></div>
+
+    <!-- Input Area -->
     <div class="input-area">
+      <!-- Attach Image Button -->
       <button class="attach-btn" id="attachBtn" aria-label="Attach Image">📎</button>
       <input type="file" id="imageUpload" accept="image/*" />
+
+      <!-- Message Input -->
       <input id="messageInput" type="text" placeholder="Type a message..." aria-label="Message input" />
+
+      <!-- Voice Note Button -->
       <button class="voice-btn" id="voiceBtn" aria-label="Record voice message">🎤</button>
+
+      <!-- Send Button -->
       <button class="send-btn" id="sendBtn" aria-label="Send message">➤</button>
     </div>
   </div>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  // Theme toggle
-  const darkModeToggle = document.getElementById('darkModeToggle');
-  const body = document.body;
 
-  // Load theme from localStorage
-  if (localStorage.getItem('theme') === 'light') {
-    body.classList.add('light-mode');
-  }
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Theme toggle
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const body = document.body;
 
-  darkModeToggle.addEventListener('click', () => {
-    body.classList.toggle('light-mode');
-    const isLight = body.classList.contains('light-mode');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  });
-
-  // Menu toggle
-  const menuToggle = document.getElementById('menuToggle');
-  const menuItems = document.getElementById('menuItems');
-  menuToggle.addEventListener('click', () => {
-    const isVisible = menuItems.classList.toggle('show');
-    menuItems.setAttribute('aria-hidden', !isVisible);
-  });
-
-  // Logout button
-  const logoutBtn = document.getElementById('logoutBtn');
-  logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('username');
-    console.log('Logged out. Redirecting to login page...');
-    window.location.href = 'login.html';
-  });
-
-  // Ensure username is stored in localStorage
-  const username = localStorage.getItem('username');
-  console.log('Checking username in localStorage:', username);
-
-  if (!username) {
-    console.warn('No username found in localStorage. Redirecting to login.html...');
-    window.location.href = 'login.html';
-  }
-
-  // Initialize socket connection
-  const socket = io();
-  const messages = document.getElementById("messages");
-  const messageInput = document.getElementById("messageInput");
-  const sendBtn = document.getElementById("sendBtn");
-  const attachBtn = document.getElementById("attachBtn");
-  const imageUpload = document.getElementById("imageUpload");
-  const voiceBtn = document.getElementById("voiceBtn");
-  let replyTo = null;
-  let mediaRecorder;
-  let audioChunks = [];
-
-  // Hide loading screen on connect
-  socket.on("connect", () => {
-    const loadingScreen = document.getElementById("loadingScreen");
-    loadingScreen.style.opacity = 0;
-    setTimeout(() => (loadingScreen.style.display = "none"), 500);
-  });
-
-  // Send text message
-  sendBtn.onclick = () => {
-    sendMessage();
-  };
-  messageInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      sendMessage();
-    }
-  });
-
-  function sendMessage() {
-    if (!messageInput.value.trim()) return;
-    const data = { user: username, message: messageInput.value.trim(), replyTo: replyTo };
-    socket.emit("message", data);
-    messageInput.value = "";
-    messageInput.placeholder = "Type a message...";
-    replyTo = null;
-  }
-
-  // Receive message event
-  socket.on("message", (data) => addMessage(data));
-
-  function addMessage(data) {
-    const div = document.createElement("div");
-    div.className = "message";
-
-    // If message is a reply, show the replied text above
-    if (data.replyTo) {
-      const replied = document.createElement("div");
-      replied.style.fontSize = "12px";
-      replied.style.opacity = "0.7";
-      replied.style.marginBottom = "6px";
-      replied.textContent = `Replying to: ${data.replyTo || ""}`;
-      div.appendChild(replied);
+    // Load theme from localStorage
+    if (localStorage.getItem('theme') === 'light') {
+      body.classList.add('light-mode');
     }
 
-    // Create username label with AI tag if needed
-    const usernameSpan = document.createElement("strong");
-    usernameSpan.textContent = data.user || "Anonymous";
-
-    // Add AI tag badge if user is 'AI'
-    if ((data.user || "").toLowerCase() === "ai") {
-      const aiTag = document.createElement("span");
-      aiTag.textContent = " 🤖 AI";
-      aiTag.style.color = "#0288d1";
-      aiTag.style.fontWeight = "bold";
-      aiTag.style.marginLeft = "8px";
-      usernameSpan.appendChild(aiTag);
-    }
-    // Add AI Command tag if message starts with ".ai"
-    else if ((data.message || "").trim().toLowerCase().startsWith(".ai")) {
-      const aiCmdTag = document.createElement("span");
-      aiCmdTag.textContent = " 🧠 AI Command";
-      aiCmdTag.style.color = "#f57c00";
-      aiCmdTag.style.fontWeight = "bold";
-      aiCmdTag.style.marginLeft = "8px";
-      usernameSpan.appendChild(aiCmdTag);
-    }
-
-    // Insert message content (supports text or html, so sanitize if needed)
-    const content = document.createElement("div");
-    content.innerHTML = "";
-    content.appendChild(usernameSpan);
-    content.insertAdjacentHTML("beforeend", `: ${data.message || ""}`);
-
-    div.appendChild(content);
-
-    // Reactions container
-    const reactions = document.createElement("div");
-    reactions.className = "reactions";
-    const emojis = ["👍", "😂", "❤️", "🔥"];
-    emojis.forEach((emoji) => {
-      const btn = document.createElement("button");
-      btn.textContent = emoji;
-      btn.title = `React with ${emoji}`;
-      btn.onclick = () => {
-        // Append reaction emoji next to message, avoid duplicates if you want
-        const reactionSpan = document.createElement("span");
-        reactionSpan.textContent = emoji;
-        reactionSpan.style.marginLeft = "6px";
-        div.appendChild(reactionSpan);
-      };
-      reactions.appendChild(btn);
+    darkModeToggle.addEventListener('click', () => {
+      body.classList.toggle('light-mode');
+      const isLight = body.classList.contains('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
     });
 
-    // Reply button
-    const replyBtn = document.createElement("button");
-    replyBtn.textContent = "💬";
-    replyBtn.title = "Reply to this message";
-    replyBtn.onclick = () => {
-      replyTo = data.message || "";
-      messageInput.placeholder = `Replying to: ${replyTo}`;
-      messageInput.focus();
+    // Menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const menuItems = document.getElementById('menuItems');
+    menuToggle.addEventListener('click', () => {
+      const isVisible = menuItems.classList.toggle('show');
+      menuItems.setAttribute('aria-hidden', !isVisible);
+    });
+
+    // Logout button
+    const logoutBtn = document.getElementById('logoutBtn');
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('username');
+      console.log('Logged out. Redirecting to login page...');
+      window.location.href = 'login.html';
+    });
+
+    // Ensure username is stored in localStorage
+    const username = localStorage.getItem('username');
+    console.log('Checking username in localStorage:', username);
+
+    if (!username) {
+      console.warn('No username found in localStorage. Redirecting to login.html...');
+      window.location.href = 'login.html';
+    }
+
+    // Initialize socket connection
+    const socket = io();
+    const messages = document.getElementById("messages");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const attachBtn = document.getElementById("attachBtn");
+    const imageUpload = document.getElementById("imageUpload");
+    const voiceBtn = document.getElementById("voiceBtn");
+    let replyTo = null;
+
+    // Hide loading screen on connect
+    socket.on("connect", () => {
+      const loadingScreen = document.getElementById("loadingScreen");
+      loadingScreen.style.opacity = 0;
+      setTimeout(() => (loadingScreen.style.display = "none"), 500);
+    });
+
+    // Send text message
+    sendBtn.onclick = () => {
+      sendMessage();
     };
-    reactions.appendChild(replyBtn);
+    messageInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
 
-    div.appendChild(reactions);
+    function sendMessage() {
+      if (!messageInput.value.trim()) return;
+      const data = { user: username, message: messageInput.value.trim(), replyTo: replyTo };
+      socket.emit("message", data);
+      messageInput.value = "";
+      messageInput.placeholder = "Type a message...";
+      replyTo = null;
+    }
 
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-  }
+    // Receive message event
+    socket.on("message", (data) => addMessage(data));
 
-  // Voice note (placeholder for demo)
-  voiceBtn.onclick = () => alert("🎙️ Voice note feature can be added via MediaRecorder");
+    function addMessage(data) {
+      const div = document.createElement("div");
+      div.className = "message";
 
-  attachBtn.onclick = () => imageUpload.click();
-  imageUpload.onchange = () => {
-    const file = imageUpload.files[0];
-    const url = URL.createObjectURL(file);
-    const data = {
-      user: username,
-      message: `<img src="${url}" style="max-width:150px; border-radius: 8px;" />`,
+      // If message is a reply, show the replied text above
+      if (data.replyTo) {
+        const replied = document.createElement("div");
+        replied.style.fontSize = "12px";
+        replied.style.opacity = "0.7";
+        replied.style.marginBottom = "6px";
+        replied.textContent = `Replying to: ${data.replyTo || ""}`;
+        div.appendChild(replied);
+      }
+
+      // Create username label with AI tag if needed
+      const usernameSpan = document.createElement("strong");
+      usernameSpan.textContent = data.user || "Anonymous";
+
+      // Add AI tag badge if user is 'AI'
+      if ((data.user || "").toLowerCase() === "ai") {
+        const aiTag = document.createElement("span");
+        aiTag.textContent = " 🤖 AI";
+        aiTag.style.color = "#0288d1";
+        aiTag.style.fontWeight = "bold";
+        aiTag.style.marginLeft = "8px";
+        usernameSpan.appendChild(aiTag);
+      }
+      // Add AI Command tag if message starts with ".ai"
+      else if ((data.message || "").trim().toLowerCase().startsWith(".ai")) {
+        const aiCmdTag = document.createElement("span");
+        aiCmdTag.textContent = " 🧠 AI Command";
+        aiCmdTag.style.color = "#f57c00";
+        aiCmdTag.style.fontWeight = "bold";
+        aiCmdTag.style.marginLeft = "8px";
+        usernameSpan.appendChild(aiCmdTag);
+      }
+
+      // Insert message content (supports text or html, so sanitize if needed)
+      const content = document.createElement("div");
+      content.innerHTML = "";
+      content.appendChild(usernameSpan);
+      content.insertAdjacentHTML("beforeend", `: ${data.message || ""}`);
+
+      div.appendChild(content);
+
+      // Reactions container
+      const reactions = document.createElement("div");
+      reactions.className = "reactions";
+      const emojis = ["👍", "😂", "❤️", "🔥"];
+      emojis.forEach((emoji) => {
+        const btn = document.createElement("button");
+        btn.textContent = emoji;
+        btn.title = `React with ${emoji}`;
+        btn.onclick = () => {
+          const reactionSpan = document.createElement("span");
+          reactionSpan.textContent = emoji;
+          reactionSpan.style.marginLeft = "6px";
+          div.appendChild(reactionSpan);
+        };
+        reactions.appendChild(btn);
+      });
+
+      // Reply button
+      const replyBtn = document.createElement("button");
+      replyBtn.textContent = "💬";
+      replyBtn.title = "Reply to this message";
+      replyBtn.onclick = () => {
+        replyTo = data.message || "";
+        messageInput.placeholder = `Replying to: ${replyTo}`;
+        messageInput.focus();
+      };
+      reactions.appendChild(replyBtn);
+
+      div.appendChild(reactions);
+
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Voice note (placeholder for demo)
+    voiceBtn.onclick = () => alert("🎙️ Voice note feature can be added via MediaRecorder");
+
+    attachBtn.onclick = () => imageUpload.click();
+    imageUpload.onchange = () => {
+      const file = imageUpload.files[0];
+      const url = URL.createObjectURL(file);
+      const data = {
+        user: username,
+        message: `<img src="${url}" style="max-width:150px; border-radius: 8px;" />`,
+      };
+      socket.emit("message", data);
     };
-    socket.emit("message", data);
-  };
-</script>
+  </script>
 </body>
 </html>
 
