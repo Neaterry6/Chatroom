@@ -248,6 +248,7 @@
 
       <button type="submit" id="submitBtn">Create Account</button>
 
+      <div id="serverError" class="error-message"></div>
       <div id="formSuccess" class="success-message" style="display:none;"></div>
     </form>
 
@@ -282,16 +283,18 @@
     const emailError = document.getElementById('emailError');
     const passwordError = document.getElementById('passwordError');
     const confirmPasswordError = document.getElementById('confirmPasswordError');
+    const serverError = document.getElementById('serverError');
     const formSuccess = document.getElementById('formSuccess');
 
     // Simple but effective email regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    function clearErrors() {
+    function clearErrors( ) {
       usernameError.textContent = '';
       emailError.textContent = '';
       passwordError.textContent = '';
       confirmPasswordError.textContent = '';
+      serverError.textContent = '';
       formSuccess.style.display = 'none';
       formSuccess.textContent = '';
     }
@@ -300,60 +303,66 @@
       e.preventDefault();
       clearErrors();
 
-      const formData = new FormData(form);
-      const username = formData.get('username').trim();
-      const email = formData.get('email').trim();
-      const password = formData.get('password');
-      const confirmPassword = formData.get('confirmPassword');
+      const username = form.username.value.trim();
+      const email = form.email.value.trim();
+      const password = form.password.value;
+      const confirmPassword = form.confirmPassword.value;
 
-      let valid = true;
+      let hasError = false;
 
       if (username.length < 3) {
-        usernameError.textContent = 'Username must be at least 3 characters.';
-        valid = false;
+        usernameError.textContent = 'Username must be at least 3 characters';
+        hasError = true;
       }
 
       if (!emailRegex.test(email)) {
-        emailError.textContent = 'Please enter a valid email.';
-        valid = false;
+        emailError.textContent = 'Please enter a valid email address';
+        hasError = true;
       }
 
       if (password.length < 6) {
-        passwordError.textContent = 'Password must be at least 6 characters.';
-        valid = false;
+        passwordError.textContent = 'Password must be at least 6 characters';
+        hasError = true;
       }
 
       if (confirmPassword !== password) {
-        confirmPasswordError.textContent = 'Passwords do not match.';
-        valid = false;
+        confirmPasswordError.textContent = 'Passwords do not match';
+        hasError = true;
       }
 
-      if (!valid) return;
+      if (hasError) return;
 
+      // Disable the button to prevent multiple submits
       submitBtn.disabled = true;
       submitBtn.textContent = 'Creating...';
 
       try {
-        const response = await fetch(form.action, {
-          method: form.method,
-          body: formData,
+        // Example: send form data to your backend (replace /signup with your endpoint)
+        const response = await fetch('/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, email, password })
         });
 
-        if (response.ok) {
-          formSuccess.style.display = 'block';
-          formSuccess.textContent = 'Account created successfully! Redirecting...';
-
-          setTimeout(() => {
-            window.location.href = '/dashboard.html';
-          }, 1500);
-        } else {
-          const result = await response.json();
-          alert(result.message || 'Signup failed. Try a different username or email.');
+        if (!response.ok) {
+          const errorData = await response.json();
+          serverError.textContent = errorData.message || 'Failed to create account';
           submitBtn.disabled = false;
           submitBtn.textContent = 'Create Account';
+          return;
         }
-      } catch (error) {
-        alert('An error occurred. Please try again later.');
+
+        formSuccess.textContent = 'Account created successfully! Redirecting...';
+        formSuccess.style.display = 'block';
+
+        setTimeout(() => {
+          window.location.href = '/login.html';
+        }, 2000);
+
+      } catch (err) {
+        serverError.textContent = 'Network error. Please try again later.';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Create Account';
       }
